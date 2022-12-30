@@ -16,12 +16,12 @@ import time
 import random
 import datetime as dt
 import os
-os.chdir('D:\\Python\\Others') #change accordingly
+#os.chdir('D:\\Python\\Others') #change accordingly
 from Functions_Rental_Car_Alert import *
 
 
 #Set the variables
-limit = 65.32
+limit = 55.66
 insurance_limit = True
 emailadress = 'adrianalvarez3091@gmail.com'
 url = 'https://www.doyouspain.com/do/list/es?s=72cc3ec4-9522-4a4a-b38a-a07fbe9409a2&b=63025388-6c36-4340-9996-fba1ff959e6c'
