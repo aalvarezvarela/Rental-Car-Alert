@@ -79,7 +79,7 @@ while stop == False:
             print('...Email sent...')
             sendedmail = False
         # conn.quit()     
-    waitingfor = 60*60*random.uniform(0.9, 1.2)*2
+    waitingfor = 60*60*random.uniform(0.7, 0.9)*2
     print("Waiting for next round: ", waitingfor/60/60)
     now = dt.datetime.now()
     t1 = dt.datetime.strptime(str(now.hour)+':'+str(now.minute) +':0', '%H:%M:%S')
