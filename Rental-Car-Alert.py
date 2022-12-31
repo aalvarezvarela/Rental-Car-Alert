@@ -68,7 +68,7 @@ while stop == False:
                 email_results[result] = filtered_results[result]
     else:
         email_results = filtered_results
-    email = True if len(email_results) > 0 and old_results != email_results  else False
+    email = True if len(email_results) > 0 and str(old_results).replace("'","").replace('"', '') != str(email_results).replace("'","").replace('"', '')  else False
     old_results = email_results.copy()
     if email:
         print(len(email_results), 'results found under the setted price')
@@ -79,6 +79,10 @@ while stop == False:
             print('...Email sent...')
             sendedmail = False
         # conn.quit()     
+    elif len(email_results) < 1:
+        print("No cars found cheaper than", limit, '€')
+    else:
+        print('Results have been already notified by email in the previous lookup')
     waitingfor = 60*60*random.uniform(0.7, 0.9)*2
     print("Waiting for next round: ", waitingfor/60/60)
     now = dt.datetime.now()
