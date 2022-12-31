@@ -36,6 +36,7 @@ old_results = 0
 
 while stop == False:
     print('... Searching in DoyouSpain...')
+    text = ''
     email = False
     browser = webdriver.Chrome(options=options)#open headless chrome1
     browser.get(url)
@@ -73,10 +74,10 @@ while stop == False:
         print(len(email_results), 'results found under the setted price')
         subject = str(len(email_results)) + ' Car(s) at lower price in DoyouSpain'
         text = email_text_generator(email_results, insurance_limit, limit, url)
-        sendemail = sendemail(emailadress, subject, text)
-        if sendemail:
+        sendedmail = sendemail(emailadress, subject, text)
+        if sendedmail:
             print('...Email sent...')
-            sendemail = False
+            sendedmail = False
         # conn.quit()     
     waitingfor = 60*60*random.uniform(0.9, 1.2)*2
     print("Waiting for next round: ", waitingfor/60/60)
