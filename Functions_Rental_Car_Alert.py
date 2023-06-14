@@ -36,6 +36,8 @@ def create_options_selenium(headless = True):
     options.add_argument('window-size=1920x1080')
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.169 Safari/537.36")
     options.add_argument("--disable-software-rasterizer")
+    options.add_argument("--disable-dev-shm-usage") ## overcome limited resource problems
+    options.add_argument("--no-sandbox")
     if headless:
         print("Headless mode Selenium")
         options.add_argument('--headless')
