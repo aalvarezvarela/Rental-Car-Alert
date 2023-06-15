@@ -26,7 +26,7 @@ time.sleep(60)
 if len(sys.argv) > 1: #limit is the first argument when executing the script. otherwise it is set as a default value
     limit = float(sys.argv[1].replace('€', '').replace(',', '.'))
 else:
-    limit = 65
+    limit = 57
 print('Limit set as: ', limit, '€')
 insurance_limit = True
 emailadress = 'adrianalvarez3091@gmail.com'
@@ -51,7 +51,7 @@ while stop == False:
     soups = get_car_soups(soup)
     results = {}
     for n, car in enumerate(soups):
-        results[n] = get_info_car(car, n)
+        results[n] = get_info_car(car, n, limit)
     filtered_results ={}
     for nn, result in enumerate(results.values()):
         if (result[0]< limit*0.8) and result[4] != 'Lleno/Vacío (Dev.)':

@@ -67,7 +67,7 @@ def get_car_price(car):
     return float(price)       
 
 
-def get_info_car(car,n):
+def get_info_car(car,n, limit):
     price = get_car_price(car)
     company=car.find_all('span',{"class": "cl--car-rent-info"})[0].getText().replace(" Condiciones", "")
     shuttle= car.find_all('li',{"class": "tooltipBlanco serv sc-airport"})[0].getText()
@@ -81,7 +81,8 @@ def get_info_car(car,n):
     car_model = car.find_all('div', {"class": "cl--name"})[0].find_all('h2')[0].getText()
     if len(policy) <3:
         policy = 'Not Refundable'
-    print(price, 'Euros', "at", company, shuttle, milelimit, gasolin, policy, car_model)
+    # if price < limit:
+        # print(price, 'Euros', "at", company, shuttle, milelimit, gasolin, policy, car_model)
     return [price, company, shuttle, milelimit, gasolin, policy, car_model]
 
 def get_insurance_price(newsoup, original_price):
