@@ -24,9 +24,9 @@ time.sleep(60)
 #Set the variables
 
 if len(sys.argv) > 1: #limit is the first argument when executing the script. otherwise it is set as a default value
-    limit = float(sys.argv[1].replace('€', '').replace(',', '.'))
+    limit = float((sys.argv[1]).replace('€', '').replace(',', '.'))
 else:
-    limit = 57
+    limit = 65
 print('Limit set as: ', limit, '€')
 insurance_limit = True
 emailadress = 'adrianalvarez3091@gmail.com'
@@ -96,4 +96,5 @@ while stop == False:
     time_zero = dt.datetime.strptime('00:00:00', '%H:%M:%S')
     print('Next search programmed at:',(t1 - time_zero + t2).time())
     time.sleep(waitingfor)
+
 
