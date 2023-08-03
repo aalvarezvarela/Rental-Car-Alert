@@ -116,7 +116,7 @@ def sendemail(email, subject, text):
     conn.starttls()
     conn.login('flatronlg@hotmail.es','2344Alva+')
     finaltext = ('Subject: ' +subject + '\n\n' + text).encode("utf-8")
-    conn.sendmail('flatronlg@hotmail.es','adrianalvarez3091@gmail.com',finaltext )
+    conn.sendmail('flatronlg@hotmail.es',email,finaltext )
     conn.quit()  
     return True
 

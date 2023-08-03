@@ -20,18 +20,24 @@ import sys
 #os.chdir('D:\\Python\\Others') #change accordingly
 from Functions_Rental_Car_Alert import *
 
-time.sleep(60)
+time.sleep(1)
 #Set the variables
 
 if len(sys.argv) > 1: #limit is the first argument when executing the script. otherwise it is set as a default value
     limit = float((sys.argv[1]).replace('€', '').replace(',', '.'))
 else:
-    limit = 65
+    limit = 287
 print('Limit set as: ', limit, '€')
-insurance_limit = True
-emailadress = 'adrianalvarez3091@gmail.com'
-url = 'https://www.doyouspain.com/do/list/es?s=b9b3e103-550c-4906-9605-3c955c54a5ec&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
+insurance_limit = False
+if insurance_limit:
+    insurance_ratio = 0.8
+else:
+    insurance_ratio = 1
 
+emailadress = 'ernest.salomoprat@gmail.com'
+# url = 'https://www.doyouspain.com/do/list/es?s=b9b3e103-550c-4906-9605-3c955c54a5ec&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
+# url = 'https://www.doyouspain.com/do/list/es?s=c14f6ece-c8c9-4248-be13-ea43804a184a&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
+url= 'https://www.doyouspain.com/do/list/es?s=491329ba-60b4-4301-8955-486d00ed875b&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
 options = create_options_selenium(True)
 
 
@@ -54,7 +60,8 @@ while stop == False:
         results[n] = get_info_car(car, n, limit)
     filtered_results ={}
     for nn, result in enumerate(results.values()):
-        if (result[0]< limit*0.8) and result[4] != 'Lleno/Vacío (Dev.)':
+        print(result[4], result[0])
+        if (result[0]< limit*insurance_ratio) and result[4] != 'Lleno/Vacío (Dev.)':
             filtered_results[nn] = result
             time.sleep(1)
             element = browser.find_element(By.CLASS_NAME,"bdg-container")
