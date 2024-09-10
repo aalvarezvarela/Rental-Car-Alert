@@ -114,7 +114,7 @@ def sendemail(email, subject, text):
     type(conn)
     conn.ehlo()
     conn.starttls()
-    conn.login('flatronlg@hotmail.es','2344Alva+')
+    conn.login('flatronlg@hotmail.es','flatronL1915s+')
     finaltext = ('Subject: ' +subject + '\n\n' + text).encode("utf-8")
     conn.sendmail('flatronlg@hotmail.es',email,finaltext )
     conn.quit()  

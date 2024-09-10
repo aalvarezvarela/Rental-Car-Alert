@@ -26,19 +26,21 @@ time.sleep(1)
 if len(sys.argv) > 1: #limit is the first argument when executing the script. otherwise it is set as a default value
     limit = float((sys.argv[1]).replace('€', '').replace(',', '.'))
 else:
-    limit = 287
+    limit = 150
+
 print('Limit set as: ', limit, '€')
-insurance_limit = False
+insurance_limit = True
 if insurance_limit:
-    insurance_ratio = 0.8
+    insurance_ratio = 0.9
 else:
     insurance_ratio = 1
 
-emailadress = 'ernest.salomoprat@gmail.com'
+emailadress = 'adrianalvarez3091@gmail.com'
 # url = 'https://www.doyouspain.com/do/list/es?s=b9b3e103-550c-4906-9605-3c955c54a5ec&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
 # url = 'https://www.doyouspain.com/do/list/es?s=c14f6ece-c8c9-4248-be13-ea43804a184a&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
-url= 'https://www.doyouspain.com/do/list/es?s=491329ba-60b4-4301-8955-486d00ed875b&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
-options = create_options_selenium(True)
+url= 'https://www.doyouspain.com/do/list/es?s=7c8c5644-e508-43b6-9d99-b3c307866fb2&b=272cdc63-8e35-46b8-93c8-1e44fdae0d31'
+url = 'https://www.doyouspain.com/do/list/es?s=461e9741-d22a-4134-b31d-582ef4dc8e42&b=a9bd9a83-af66-4ba8-8381-720634356174'
+options = create_options_selenium(headless=True)
 
 
 stop = False
@@ -51,6 +53,19 @@ while stop == False:
     email = False
     browser = webdriver.Chrome(options=options)#open headless chrome1
     browser.get(url)
+    time.sleep(1)
+    try:
+        # Locate the "Aceptar todas las cookies" button using its ID
+        accept_cookies_button = browser.find_element(By.ID, "checkAllOptions")
+        
+        # Click the button to accept cookies
+        accept_cookies_button.click()
+        print("Cookies accepted.")
+
+    except Exception as e:
+        print(f"Error: {e}")
+        
+    
     page_source = browser.page_source
     soup = BeautifulSoup(page_source, features="lxml")
     #find a list of each soup per car:
@@ -59,8 +74,9 @@ while stop == False:
     for n, car in enumerate(soups):
         results[n] = get_info_car(car, n, limit)
     filtered_results ={}
+    # print(results)
     for nn, result in enumerate(results.values()):
-        print(result[4], result[0])
+        print(result[4], result[0], 'limit:',limit*insurance_ratio)
         if (result[0]< limit*insurance_ratio) and result[4] != 'Lleno/Vacío (Dev.)':
             filtered_results[nn] = result
             time.sleep(1)
@@ -72,6 +88,7 @@ while stop == False:
             newsoup = BeautifulSoup(new_page_source, features="lxml")
             filtered_results[nn] += [get_insurance_price(newsoup, result[0])]
             browser.back()
+    
     browser.close()
     if insurance_limit:
         email_results = {}
@@ -95,7 +112,7 @@ while stop == False:
         print("No cars found cheaper than", limit, '€')
     else:
         print('Results have been already notified by email in the previous lookup')
-    waitingfor = 60*60*random.uniform(0.7, 0.9)*2
+    waitingfor = 60*60*random.uniform(0.7, 0.9)*1
     print("Waiting for next round: ", waitingfor/60/60)
     now = dt.datetime.now()
     t1 = dt.datetime.strptime(str(now.hour)+':'+str(now.minute) +':0', '%H:%M:%S')
