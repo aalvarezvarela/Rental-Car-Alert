@@ -29,9 +29,13 @@ else:
     limit = 152
 
 print('Limit set as: ', limit, '€')
+
+
 insurance_limit = True
+only_cancelable = True
+
 if insurance_limit:
-    insurance_ratio = 0.9
+    insurance_ratio = 0.95
 else:
     insurance_ratio = 1
 
@@ -43,11 +47,10 @@ url = 'https://www.doyouspain.com/do/list/es?s=461e9741-d22a-4134-b31d-582ef4dc8
 options = create_options_selenium(headless=True)
 
 
-stop = False
 old_results = 0
 
 
-while stop == False:
+while True:
     print('... Searching in DoyouSpain...')
     text = ''
     email = False
@@ -70,10 +73,25 @@ while stop == False:
             EC.element_to_be_clickable((By.CSS_SELECTOR, '.fuel-option.fuel-option-none.tooltipBlancoBig[title*="Lleno/Lleno"]'))
         )
         fuel_option.click()
+        print('Fuel option set to Full/Full')
     except Exception as e:
         print(f"Error: {e}")
             
     time.sleep(3)
+    if only_cancelable:
+        try:
+            cancel_option = WebDriverWait(browser, 10).until(
+                EC.element_to_be_clickable((By.ID, 'idCancel1'))
+            )
+            
+            # Click the radio button if it's present
+            cancel_option.click()
+            print("Only cancelable cars selected.")
+        
+        except Exception as e:
+            print(f"Error: {e}")
+    time.sleep(3)
+
     page_source = browser.page_source
     soup = BeautifulSoup(page_source, features="lxml")
     #find a list of each soup per car:
