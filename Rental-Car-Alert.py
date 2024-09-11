@@ -26,7 +26,7 @@ time.sleep(1)
 if len(sys.argv) > 1: #limit is the first argument when executing the script. otherwise it is set as a default value
     limit = float((sys.argv[1]).replace('€', '').replace(',', '.'))
 else:
-    limit = 150
+    limit = 152
 
 print('Limit set as: ', limit, '€')
 insurance_limit = True
@@ -38,7 +38,7 @@ else:
 emailadress = 'adrianalvarez3091@gmail.com'
 # url = 'https://www.doyouspain.com/do/list/es?s=b9b3e103-550c-4906-9605-3c955c54a5ec&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
 # url = 'https://www.doyouspain.com/do/list/es?s=c14f6ece-c8c9-4248-be13-ea43804a184a&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
-url= 'https://www.doyouspain.com/do/list/es?s=7c8c5644-e508-43b6-9d99-b3c307866fb2&b=272cdc63-8e35-46b8-93c8-1e44fdae0d31'
+# url= 'https://www.doyouspain.com/do/list/es?s=7c8c5644-e508-43b6-9d99-b3c307866fb2&b=272cdc63-8e35-46b8-93c8-1e44fdae0d31'
 url = 'https://www.doyouspain.com/do/list/es?s=461e9741-d22a-4134-b31d-582ef4dc8e42&b=a9bd9a83-af66-4ba8-8381-720634356174'
 options = create_options_selenium(headless=True)
 
@@ -64,8 +64,16 @@ while stop == False:
 
     except Exception as e:
         print(f"Error: {e}")
-        
-    
+  
+    try:
+        fuel_option = WebDriverWait(browser, 10).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, '.fuel-option.fuel-option-none.tooltipBlancoBig[title*="Lleno/Lleno"]'))
+        )
+        fuel_option.click()
+    except Exception as e:
+        print(f"Error: {e}")
+            
+    time.sleep(3)
     page_source = browser.page_source
     soup = BeautifulSoup(page_source, features="lxml")
     #find a list of each soup per car:
@@ -78,6 +86,7 @@ while stop == False:
     for nn, result in enumerate(results.values()):
         print(result[4], result[0], 'limit:',limit*insurance_ratio)
         if (result[0]< limit*insurance_ratio) and result[4] != 'Lleno/Vacío (Dev.)':
+            print('checking insurance price...')
             filtered_results[nn] = result
             time.sleep(1)
             element = browser.find_element(By.CLASS_NAME,"bdg-container")
