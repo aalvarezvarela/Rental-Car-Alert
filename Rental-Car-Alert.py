@@ -28,13 +28,8 @@ print('Limit set as: ', limit, '€')
 
 
 insurance_limit = True
-only_cancelable = True
+only_cancelable = False
 headless = True
-
-if insurance_limit:
-    insurance_ratio = 0.9
-else:
-    insurance_ratio = 1
 
 emailadress = 'adrianalvarez3091@gmail.com'
 # url = 'https://www.doyouspain.com/do/list/es?s=b9b3e103-550c-4906-9605-3c955c54a5ec&b=8068a369-e8b1-44f0-8ae9-a8cae11e9881'
@@ -109,6 +104,7 @@ while True:
             
             except Exception as e:
                 print(f"Error: {e}")
+        
         time.sleep(3)
 
         page_source = browser.page_source
@@ -121,9 +117,9 @@ while True:
         filtered_results ={}
         # print(results)
         for nn, result in enumerate(results.values()):
-            print(result[4], result[0], 'limit:',limit*insurance_ratio)
-            if (result[0]< limit*insurance_ratio) and result[4] != 'Lleno/Vacío (Dev.)':
-                print('checking insurance price...')
+            print(f"Checking car for price with no insurance: {result[0]} €")
+            if (result[0]< limit) and result[4] != 'Lleno/Vacío (Dev.)':
+                print('Checking Insurance Price...')
                 filtered_results[nn] = result
                 time.sleep(1)
                 element = browser.find_element(By.CLASS_NAME,"bdg-container")
@@ -135,8 +131,10 @@ while True:
                 insurance_price = get_insurance_price(newsoup, result[0])
                 filtered_results[nn] += [insurance_price]
                 browser.back()
-                if isinstance(insurance_price, float) and insurance_price > limit:
+                if isinstance(insurance_price, float) and (insurance_price > limit):
                     print('Insurance price is higher than the limit, stopping search...')
+                    print(f'Insurance price: {insurance_price} €')
+                    print(f'Limit price: {limit} €')
                     break
         
         browser.close()
