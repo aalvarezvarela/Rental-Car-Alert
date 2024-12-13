@@ -1,23 +1,54 @@
 import re
 from selenium import webdriver
 import smtplib
-
 def email_text_generator(email_results, insurance_limit, limit, url):
-    text = str(len(email_results)) + ' RESULTS UNDER LIMIT PRICE! (' + str(limit) + '€) \n\n'
-    for car in email_results:
-        t = email_results[car]
-        if insurance_limit:
-            discount = round(limit - float(t[-1]),2)
-        else:
-            discount = round(limit - float(t[0]), 2)
-        for n, tt in enumerate(t):
-            t[n] = str(tt)
-        line = 'Discount of ' + str(discount) + "!! "
-        line += t[6] +' found at ' + t[-1] + '€ with insurance (' + t[0] + '€ without) with the company ' + t[1]+'. The car includes: ' + t[3] + ' and ' + t[5].replace('\n', ' ') + '. The pickup is: ' + t[2] +'\n\n'
-        text += line
-    print(text)
-    text += '\n\n'+url
-    return text   
+    """
+    Generates an email text summarizing car rental results under a price limit.
+    
+    Parameters:
+    - email_results (dict): Dictionary containing car rental data.
+    - insurance_limit (bool): Whether the limit applies to insurance price or not.
+    - limit (float): The price limit for the rentals.
+    - url (str): URL to include in the email.
+    
+    Returns:
+    - str: Generated email text.
+    """
+    # Initialize the email text with a summary header
+    text = f"{len(email_results)} RESULTS UNDER LIMIT PRICE! ({limit}€)\n\n"
+    
+    # Iterate over car results to build the details
+    for car, details in email_results.items():
+        try:
+            # Calculate the discount based on the limit and price
+            if insurance_limit:
+                discount = round(limit - float(details[-1]), 2)
+            else:
+                discount = round(limit - float(details[0]), 2)
+            
+            # Ensure all details are strings for consistent formatting
+            details = [str(detail) for detail in details]
+            
+            # Replace newlines outside the f-string
+            feature_description = details[5].replace('\n', ' ')
+            
+            # Construct the line for the current car
+            line = (
+                f"Discount of {discount}€!! "
+                f"{details[7]} doors car model: {details[6]} found at {details[-1]}€ with insurance "
+                f"({details[0]}€ without) with the company {details[1]}. The car includes: {details[3]} and "
+                f"{feature_description}. The pickup is: {details[2]}.\n\n"
+            )
+            text += line
+        except (IndexError, ValueError, TypeError) as e:
+            # Handle any unexpected issues with car details
+            text += f"Error processing car {car}: {e}\n\n"
+    
+    # Append the URL to the email text
+    text += f"\n\n{url}"
+    
+    # Return the generated email text
+    return text
 
 
 
@@ -70,6 +101,13 @@ def get_car_price(car):
 def get_info_car(car,n, limit):
     price = get_car_price(car)
     company=car.find_all('span',{"class": "cl--car-rent-info"})[0].getText().replace(" Condiciones", "")
+
+    company_element = car.select_one('.cl--car-rent-logo img')
+    if company_element and company_element.has_attr('alt'):
+        company = company_element['alt']
+    else:
+        company = 'Unknown'
+        print("Company name not found.")
     shuttle= car.find_all('li',{"class": "tooltipBlanco serv sc-airport"})[0].getText()
     milelimit = car.find_all('li', {"class": "tooltipBlanco serv sc-mileage sc-green"})
     if len(milelimit) > 0:
@@ -83,7 +121,12 @@ def get_info_car(car,n, limit):
         policy = 'Not Refundable'
     # if price < limit:
         # print(price, 'Euros', "at", company, shuttle, milelimit, gasolin, policy, car_model)
-    return [price, company, shuttle, milelimit, gasolin, policy, car_model]
+    doors_element = car.find('li', class_='tooltipBlanco serv sc-doors')
+    if doors_element:
+        number_of_doors = doors_element.text.strip()
+    else:
+        number_of_doors = 'Unknown'
+    return [price, company, shuttle, milelimit, gasolin, policy, car_model, number_of_doors]
 
 def get_insurance_price(newsoup, original_price):
     global email_results
@@ -109,18 +152,47 @@ def get_insurance_price(newsoup, original_price):
 
 
 
+# def sendemail(email, subject, text):
+#     conn=smtplib.SMTP('smtp-mail.outlook.com',587)
+#     type(conn)
+#     conn.ehlo()
+#     conn.starttls()
+#     conn.login('flatronlg@hotmail.es','flatronL1915s+')
+#     finaltext = ('Subject: ' +subject + '\n\n' + text).encode("utf-8")
+#     conn.sendmail('flatronlg@hotmail.es',email,finaltext )
+#     conn.quit()  
+#     return True
 def sendemail(email, subject, text):
-    conn=smtplib.SMTP('smtp-mail.outlook.com',587)
-    type(conn)
-    conn.ehlo()
-    conn.starttls()
-    conn.login('flatronlg@hotmail.es','flatronL1915s+')
-    finaltext = ('Subject: ' +subject + '\n\n' + text).encode("utf-8")
-    conn.sendmail('flatronlg@hotmail.es',email,finaltext )
-    conn.quit()  
-    return True
+    # Set up Gmail SMTP server
+    smtp_server = 'smtp.gmail.com'
+    smtp_port = 587
+    sender_email = 'rent.a.car.alert@gmail.com'  # Replace with your Gmail address
+    sender_password = 'qskg gkzg dpjg gxqg'  # Replace with your Gmail app password
+    
+    try:
+        # Create connection
+        conn = smtplib.SMTP(smtp_server, smtp_port)
+        conn.ehlo()
+        conn.starttls()
+        
+        # Log in to the server
+        conn.login(sender_email, sender_password)
+        
+        # Format the email content
+        final_text = f"Subject: {subject}\n\n{text}"
+        
+        # Send the email
+        conn.sendmail(sender_email, email, final_text.encode("utf-8"))
+        
+        # Close the connection
+        conn.quit()
+        
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
 
-
+# sendemail('adrian_3091@hotmail.com', 'Test', 'This is a test')
 
 
 
