@@ -203,3 +203,33 @@ If you want to confirm the environment path:
 ```bash
 poetry env info
 ```
+
+## GitHub Actions Setup
+
+The repository includes [rental-car-alert.yml](/home/adrian_alvarez/Projects/Rental-Car-Alert/.github/workflows/rental-car-alert.yml).
+
+It runs:
+
+- on `workflow_dispatch`
+- every 6 hours via cron
+- in headless mode so Playwright works reliably on GitHub-hosted runners
+
+The workflow is preconfigured with these search values:
+
+- `RCA_PICKUP_LOCATION=Heraclion Airport`
+- `RCA_PICKUP_DATE=2026-06-21`
+- `RCA_RETURN_DATE=2026-07-08`
+- `RCA_PRICE_LIMIT=115`
+- `RCA_HEADLESS=true`
+- `RCA_RUN_ONCE=true`
+
+Add these repository secrets in `Settings -> Secrets and variables -> Actions`:
+
+- `RCA_EMAIL_TO`: the address that receives the alert
+- `RCA_EMAIL_FROM`: the sender email address
+- `RCA_SMTP_HOST`: SMTP hostname, for example `smtp.gmail.com`
+- `RCA_SMTP_PORT`: SMTP port, usually `587`
+- `RCA_SMTP_USERNAME`: SMTP login username
+- `RCA_SMTP_PASSWORD`: SMTP password or Gmail app password
+
+If you use Gmail, `RCA_SMTP_PASSWORD` should be a Gmail app password, not your normal account password.

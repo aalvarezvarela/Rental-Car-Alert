@@ -84,3 +84,22 @@ poetry run python -m rental_car_alert 115
 - `RCA_ONLY_CANCELABLE`: Restrict to cancelable offers
 
 The full setup and configuration reference is in [docs/SETUP.md](/home/adrian_alvarez/Projects/Rental-Car-Alert/docs/SETUP.md).
+
+## GitHub Actions
+
+The repository includes [rental-car-alert.yml](/home/adrian_alvarez/Projects/Rental-Car-Alert/.github/workflows/rental-car-alert.yml), which runs headlessly on GitHub Actions every 6 hours and can also be started manually.
+
+It is preconfigured for:
+
+- pickup location: `Heraclion Airport`
+- pickup date: `2026-06-21`
+- return date: `2026-07-08`
+
+To make it work, add these repository secrets:
+
+- `RCA_EMAIL_TO`
+- `RCA_EMAIL_FROM`
+- `RCA_SMTP_HOST`
+- `RCA_SMTP_PORT`
+- `RCA_SMTP_USERNAME`
+- `RCA_SMTP_PASSWORD`
