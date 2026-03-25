@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import date, datetime
 from pathlib import Path
 
@@ -14,6 +15,8 @@ LOGGER = logging.getLogger(__name__)
 HOME_URL = "https://www.doyouspain.com/alquiler-coches/"
 DEBUG_DIR = Path("debug_artifacts")
 LOG_PREVIEW_LIMIT = 4_000
+MIN_HUMAN_PAUSE_SECONDS = 0.6
+MAX_HUMAN_PAUSE_SECONDS = 2.0
 
 
 class DoyouSpainScraper:
@@ -103,6 +106,7 @@ class DoyouSpainScraper:
             search_settings.return_date.isoformat(),
         )
 
+        self._human_pause(page)
         page.locator("#sendForm").click(no_wait_after=True)
         try:
             page.wait_for_url("**/do/list/**", timeout=5_000)
@@ -166,6 +170,7 @@ class DoyouSpainScraper:
         )
 
         try:
+            self._human_pause(page)
             suggestion.click(timeout=self._browser_settings.timeout_ms, force=True)
             page.wait_for_timeout(300)
         except timeout_error:
@@ -260,6 +265,7 @@ class DoyouSpainScraper:
         locator = page.locator(selector).first
         try:
             locator.wait_for(state="visible")
+            self._human_pause(page)
             locator.click()
             LOGGER.info("Clicked %s.", description)
             return True
@@ -355,6 +361,7 @@ class DoyouSpainScraper:
             popup = None
             try:
                 detail_button.scroll_into_view_if_needed()
+                self._human_pause(page)
                 with page.expect_popup(timeout=self._browser_settings.timeout_ms) as popup_info:
                     detail_button.click(
                         timeout=self._browser_settings.timeout_ms,
@@ -390,3 +397,10 @@ class DoyouSpainScraper:
                     "Insurance price could not be determined for %s.",
                     offer.model,
                 )
+
+    def _human_pause(self, page) -> None:
+        pause_seconds = random.uniform(
+            MIN_HUMAN_PAUSE_SECONDS,
+            MAX_HUMAN_PAUSE_SECONDS,
+        )
+        page.wait_for_timeout(int(pause_seconds * 1000))
