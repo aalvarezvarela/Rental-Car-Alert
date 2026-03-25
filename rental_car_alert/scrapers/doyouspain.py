@@ -11,7 +11,7 @@ from rental_car_alert.models import CarOffer, SearchRun
 from rental_car_alert.parsers.doyouspain import get_insurance_price, parse_offers
 
 LOGGER = logging.getLogger(__name__)
-HOME_URL = "https://www.doyouspain.com/"
+HOME_URL = "https://www.doyouspain.com/alquiler-coches/"
 DEBUG_DIR = Path("debug_artifacts")
 LOG_PREVIEW_LIMIT = 4_000
 
