@@ -1,12 +1,14 @@
-name: Rental Car Alert
+name: Heraklion Rental Car Alert
 
 on:
   workflow_dispatch:
-  # schedule:
-  #   - cron: "0 */6 * * *"
+  schedule:
+    - cron: "36 7-23 * * *"
+    - cron: "36 0,2,4,6 * * *"
 
 jobs:
-  monitor:
+  heraklion_monitor:
+    name: Heraklion Monitor
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -14,7 +16,7 @@ jobs:
       RCA_PICKUP_LOCATION: "Heraclion Airport"
       RCA_PICKUP_DATE: "2026-06-21"
       RCA_RETURN_DATE: "2026-07-08"
-      RCA_PRICE_LIMIT: "515"
+      RCA_PRICE_LIMIT: "615"
       RCA_HEADLESS: "true"
       RCA_INSURANCE_LIMIT: "true"
       RCA_RUN_ONCE: "true"
