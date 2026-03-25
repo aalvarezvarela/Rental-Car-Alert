@@ -1,0 +1,19 @@
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "rental-car-alert"
+version = "0.1.0"
+description = "Monitor DoYouSpain offers and notify by email when prices drop."
+readme = "README.md"
+packages = [{ include = "rental_car_alert" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+beautifulsoup4 = ">=4.12,<5"
+lxml = ">=5,<6"
+playwright = ">=1.52,<2"
+
+[tool.poetry.scripts]
+rental-car-alert = "rental_car_alert.cli:main"

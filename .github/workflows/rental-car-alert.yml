@@ -1,0 +1,45 @@
+name: Rental Car Alert
+
+on:
+  workflow_dispatch:
+  # schedule:
+  #   - cron: "0 */6 * * *"
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RCA_PICKUP_LOCATION: "Heraclion Airport"
+      RCA_PICKUP_DATE: "2026-06-21"
+      RCA_RETURN_DATE: "2026-07-08"
+      RCA_PRICE_LIMIT: "115"
+      RCA_HEADLESS: "true"
+      RCA_RUN_ONCE: "true"
+      RCA_EMAIL_TO: ${{ secrets.RCA_EMAIL_TO }}
+      RCA_EMAIL_FROM: ${{ secrets.RCA_EMAIL_FROM }}
+      RCA_SMTP_HOST: ${{ secrets.RCA_SMTP_HOST }}
+      RCA_SMTP_PORT: ${{ secrets.RCA_SMTP_PORT }}
+      RCA_SMTP_USERNAME: ${{ secrets.RCA_SMTP_USERNAME }}
+      RCA_SMTP_PASSWORD: ${{ secrets.RCA_SMTP_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "poetry"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Install Playwright Chromium
+        run: poetry run playwright install --with-deps chromium
+
+      - name: Run rental car monitor
+        run: poetry run python -m rental_car_alert
