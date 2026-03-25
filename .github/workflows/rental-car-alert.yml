@@ -13,7 +13,7 @@ jobs:
       RCA_PICKUP_LOCATION: "Heraclion Airport"
       RCA_PICKUP_DATE: "2026-06-21"
       RCA_RETURN_DATE: "2026-07-08"
-      RCA_PRICE_LIMIT: "115"
+      RCA_PRICE_LIMIT: "415"
       RCA_HEADLESS: "true"
       RCA_INSURANCE_LIMIT: "true"
       RCA_RUN_ONCE: "true"

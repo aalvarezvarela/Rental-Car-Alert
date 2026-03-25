@@ -3,7 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
-DISALLOWED_FUEL_POLICY = "Lleno/Vacío (Dev.)"
+ALLOWED_FUEL_POLICIES = {
+    "full/full",
+    "lleno/lleno",
+    "igual/igual",
+    "like for like",
+    "like/like",
+    "same/same",
+}
 
 
 @dataclass(slots=True)
@@ -20,7 +27,8 @@ class CarOffer:
     insurance_price: float | None = None
 
     def is_fuel_policy_allowed(self) -> bool:
-        return self.fuel_policy != DISALLOWED_FUEL_POLICY
+        normalized_policy = " ".join(self.fuel_policy.lower().split())
+        return normalized_policy in ALLOWED_FUEL_POLICIES
 
     def alert_price(self, insurance_limit: bool) -> float | None:
         if insurance_limit:

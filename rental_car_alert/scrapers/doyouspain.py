@@ -127,14 +127,6 @@ class DoyouSpainScraper:
 
     def _apply_filters(self, page, only_cancelable: bool, timeout_error: type[Exception]) -> None:
         self._wait_for_results(page, timeout_error)
-        fuel_selectors = (
-            '.fuel-option.fuel-option-none.tooltipBlancoBig[title*="Full/Full"]',
-            '.fuel-option.fuel-option-none.tooltipBlancoBig[title*="Lleno/Lleno"]',
-        )
-        for selector in fuel_selectors:
-            if self._click_optional(page, selector, f"fuel filter {selector}", timeout_error):
-                page.wait_for_timeout(2_000)
-                break
 
         if only_cancelable:
             if self._click_optional(page, "#idCancel1", "cancelation filter", timeout_error):
