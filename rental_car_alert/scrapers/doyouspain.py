@@ -91,15 +91,11 @@ class DoyouSpainScraper:
         pickup_input.wait_for(state="visible")
         LOGGER.info("Filling pickup location with %r.", search_settings.pickup_location)
         pickup_input.fill(search_settings.pickup_location)
-
-        suggestion = page.locator("#recogida_lista li").first
-        suggestion.wait_for(state="visible")
-        suggestion.click()
-        page.wait_for_timeout(500)
-        LOGGER.info("Selected first pickup suggestion.")
+        self._select_first_pickup_suggestion(page, timeout_error)
 
         self._set_date_input(page, "#fechaRecogida", search_settings.pickup_date)
         self._set_date_input(page, "#fechaDevolucion", search_settings.return_date)
+        self._log_form_state(page)
         LOGGER.info(
             "Searching for offers from %s to %s.",
             search_settings.pickup_date.isoformat(),
@@ -115,18 +111,118 @@ class DoyouSpainScraper:
 
     def _set_date_input(self, page, selector: str, value: date) -> None:
         formatted = value.strftime("%d/%m/%Y")
-        page.locator(selector).evaluate(
+        page.evaluate(
             """
-            (element, nextValue) => {
+            ({ selector, formatted, isoDate }) => {
+                const element = document.querySelector(selector);
+                if (!element) {
+                    return false;
+                }
+
+                const jq = window.jQuery || window.$;
+                const parsedDate = new Date(`${isoDate}T12:00:00`);
+
+                if (jq && jq.fn && typeof jq.fn.datepicker === 'function') {
+                    jq(element).datepicker('setDate', parsedDate);
+                }
+
                 element.removeAttribute('readonly');
-                element.value = nextValue;
+                element.value = formatted;
+                element.setAttribute('value', formatted);
                 element.dispatchEvent(new Event('input', { bubbles: true }));
                 element.dispatchEvent(new Event('change', { bubbles: true }));
                 element.dispatchEvent(new Event('blur', { bubbles: true }));
+                return true;
             }
             """,
-            formatted,
+            {
+                "selector": selector,
+                "formatted": formatted,
+                "isoDate": value.isoformat(),
+            },
         )
+        page.wait_for_function(
+            """({ selector, formatted }) => {
+                const element = document.querySelector(selector);
+                return !!element && element.value === formatted;
+            }""",
+            {"selector": selector, "formatted": formatted},
+        )
+
+    def _select_first_pickup_suggestion(self, page, timeout_error: type[Exception]) -> None:
+        suggestion = page.locator("#recogida_lista li").first
+        suggestion.wait_for(state="attached")
+        option_data = suggestion.evaluate(
+            """
+            (element) => ({
+                id: element.dataset.id || '',
+                destino: element.dataset.destino || '',
+                pais: element.dataset.pais || '',
+                destinoDescription: element.dataset.destinoDescription || '',
+                label: (element.textContent || '').replace(/\\s+/g, ' ').trim(),
+            })
+            """
+        )
+
+        try:
+            suggestion.click(timeout=self._browser_settings.timeout_ms, force=True)
+            page.wait_for_timeout(300)
+        except timeout_error:
+            LOGGER.warning("Suggestion click timed out; applying destination fields directly.")
+
+        page.evaluate(
+            """
+            (option) => {
+                const applyValue = (selector, value) => {
+                    const element = document.querySelector(selector);
+                    if (!element) {
+                        return;
+                    }
+                    element.value = value;
+                    element.setAttribute('value', value);
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    element.dispatchEvent(new Event('change', { bubbles: true }));
+                    element.dispatchEvent(new Event('blur', { bubbles: true }));
+                };
+
+                applyValue('#pickup', option.id || option.destinoDescription || option.label || '');
+                applyValue('#destino', option.destino || '');
+                applyValue('#destino_final', option.destino || '');
+                applyValue('#pais', option.pais || '');
+                applyValue('#codDestinoLanding', option.destino || '');
+                applyValue('#paisLanding', option.pais || '');
+            }
+            """,
+            option_data,
+        )
+
+        page.wait_for_function(
+            "() => !!document.querySelector('#destino')?.value && !!document.querySelector('#pickup')?.value"
+        )
+        LOGGER.info(
+            "Selected first pickup suggestion: %s (%s).",
+            option_data["id"] or option_data["label"],
+            option_data["destino"],
+        )
+
+    def _log_form_state(self, page) -> None:
+        state = page.evaluate(
+            """
+            () => ({
+                pickup: document.querySelector('#pickup')?.value || '',
+                destino: document.querySelector('#destino')?.value || '',
+                destinoFinal: document.querySelector('#destino_final')?.value || '',
+                pais: document.querySelector('#pais')?.value || '',
+                pickupDate: document.querySelector('#fechaRecogida')?.value || '',
+                returnDate: document.querySelector('#fechaDevolucion')?.value || '',
+                pickupHour: document.querySelector('#horarecogida')?.value || '',
+                pickupMinutes: document.querySelector('#minutosrecogida')?.value || '',
+                returnHour: document.querySelector('#horadevolucion')?.value || '',
+                returnMinutes: document.querySelector('#minutosdevolucion')?.value || '',
+            })
+            """
+        )
+        LOGGER.info("Search form state before submit: %s", state)
 
     def _apply_filters(self, page, only_cancelable: bool, timeout_error: type[Exception]) -> None:
         self._wait_for_results(page, timeout_error)
