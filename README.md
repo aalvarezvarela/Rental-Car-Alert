@@ -1,8 +1,10 @@
 # Rental Car Alert
 
-`Rental Car Alert` monitors a saved `doyouspain.com` search with Playwright and sends an email when a qualifying offer drops below your configured price limit.
+`Rental Car Alert` opens `doyouspain.com`, fills the search form with your pickup location and dates, then sends an email when a qualifying offer drops below your configured price limit.
 
 The project now targets `Python 3.12` and uses `Poetry` for environment and dependency management.
+
+Configuration can be supplied either with CLI flags or a local `.env` file in the project root.
 
 The supported entrypoints are:
 
@@ -32,27 +34,44 @@ poetry run playwright install chromium
 Run one cycle:
 
 ```bash
-RCA_SMTP_PASSWORD="your-app-password" poetry run python -m rental_car_alert 115 --once
+RCA_PICKUP_LOCATION="heraclion" \
+RCA_PICKUP_DATE="02-05-26" \
+RCA_RETURN_DATE="09-05-26" \
+RCA_SMTP_PASSWORD="your-app-password" \
+poetry run python -m rental_car_alert 115 --once
+```
+
+With the included `.env`, you can also just run:
+
+```bash
+poetry run python -m rental_car_alert 115 --once
 ```
 
 Run continuously:
 
 ```bash
+RCA_PICKUP_LOCATION="heraclion" \
+RCA_PICKUP_DATE="02-05-26" \
+RCA_RETURN_DATE="09-05-26" \
 poetry run python -m rental_car_alert 115
 ```
 
 ## What It Does
 
-1. Opens your DoYouSpain results page in Playwright.
-2. Accepts cookies and applies filters such as `Full/Full`.
-3. Parses the result cards into structured `CarOffer` objects.
-4. Opens each qualifying detail page to read the insurance-inclusive price.
-5. Sends an email if a new result is below the configured threshold.
-6. Waits for the next polling interval and repeats.
+1. Opens the DoYouSpain homepage in Playwright.
+2. Fills the pickup autocomplete with your location text and selects the first matching option.
+3. Sets pickup and return dates, then submits the search.
+4. Applies filters such as `Full/Full`.
+5. Parses the result cards into structured `CarOffer` objects.
+6. Opens each qualifying detail page to read the insurance-inclusive price.
+7. Sends an email if a new result is below the configured threshold.
+8. Waits for the next polling interval and repeats.
 
 ## Main Configuration
 
-- `RCA_URL`: DoYouSpain results URL to monitor
+- `RCA_PICKUP_LOCATION`: Pickup location text, for example `heraclion`
+- `RCA_PICKUP_DATE`: Pickup date, for example `02-05-26`
+- `RCA_RETURN_DATE`: Return date, for example `09-05-26`
 - `RCA_PRICE_LIMIT`: Alert threshold in euros
 - `RCA_EMAIL_TO`: Recipient email
 - `RCA_EMAIL_FROM`: Sender email

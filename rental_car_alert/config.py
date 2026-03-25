@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 import os
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 
 
-DEFAULT_SEARCH_URL = "https://www.doyouspain.com/do/list/es?s=cbeabd0b-57d3-407a-b1d2-bcc399d66207&b=7fd402bb-11ba-44aa-a8fd-69d60c10c6d9"
 DEFAULT_RECIPIENT = "adrianalvarez3091@gmail.com"
 DEFAULT_SENDER = "rent.a.car.alert@gmail.com"
 DEFAULT_PRICE_LIMIT = 115.0
@@ -51,10 +51,24 @@ def _parse_limit(raw_value: str) -> float:
     return float(cleaned)
 
 
+def _parse_date(raw_value: str) -> date:
+    normalized = raw_value.strip()
+    for fmt in ("%d-%m-%y", "%d-%m-%Y", "%d/%m/%y", "%d/%m/%Y", "%Y-%m-%d"):
+        try:
+            return datetime.strptime(normalized, fmt).date()
+        except ValueError:
+            continue
+    raise argparse.ArgumentTypeError(
+        f"Invalid date: {raw_value!r}. Use formats like 02-05-26 or 2026-05-02."
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class SearchSettings:
-    url: str
+    pickup_location: str
     limit: float
+    pickup_date: date
+    return_date: date
     insurance_limit: bool
     only_cancelable: bool
 
@@ -107,9 +121,25 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Alert threshold in euros.",
     )
     parser.add_argument(
-        "--url",
-        default=os.getenv("RCA_URL", DEFAULT_SEARCH_URL),
-        help="DoYouSpain search URL to monitor.",
+        "--pickup-location",
+        default=os.getenv("RCA_PICKUP_LOCATION", ""),
+        help="Pickup location text used in the DoYouSpain autocomplete.",
+    )
+    parser.add_argument(
+        "--pickup-date",
+        type=_parse_date,
+        default=_parse_date(os.getenv("RCA_PICKUP_DATE"))
+        if os.getenv("RCA_PICKUP_DATE")
+        else None,
+        help="Pickup date. Example: 02-05-26",
+    )
+    parser.add_argument(
+        "--return-date",
+        type=_parse_date,
+        default=_parse_date(os.getenv("RCA_RETURN_DATE"))
+        if os.getenv("RCA_RETURN_DATE")
+        else None,
+        help="Return date. Example: 09-05-26",
     )
     parser.add_argument(
         "--recipient",
@@ -208,13 +238,23 @@ def load_config(argv: list[str] | None = None) -> AppConfig:
     _load_dotenv()
     args = build_argument_parser().parse_args(argv)
 
+    if not args.pickup_location.strip():
+        raise ValueError("pickup-location is required.")
+    if args.pickup_date is None:
+        raise ValueError("pickup-date is required.")
+    if args.return_date is None:
+        raise ValueError("return-date is required.")
+    if args.return_date <= args.pickup_date:
+        raise ValueError("return-date must be after pickup-date.")
     if args.jitter_min > args.jitter_max:
         raise ValueError("jitter-min cannot be greater than jitter-max.")
 
     return AppConfig(
         search=SearchSettings(
-            url=args.url,
+            pickup_location=args.pickup_location.strip(),
             limit=args.limit,
+            pickup_date=args.pickup_date,
+            return_date=args.return_date,
             insurance_limit=args.insurance_limit,
             only_cancelable=args.only_cancelable,
         ),

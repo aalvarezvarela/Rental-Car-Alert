@@ -65,17 +65,6 @@ def _get_text_or_default(car: Tag, selector: str, default: str = "Unknown") -> s
     return normalize_text(element.get_text(" ", strip=True)) or default
 
 
-def _extract_detail_request(car: Tag) -> tuple[str | None, str | None]:
-    button = car.select_one('input[name^="coche"]')
-    if button is None or not button.has_attr("onclick"):
-        return None, None
-
-    match = re.search(r"submitNext\('([^']+)',\s*'([^']+)'", button["onclick"])
-    if match is None:
-        return None, None
-    return match.group(1), match.group(2)
-
-
 def parse_offer_card(car: Tag, position: int) -> CarOffer:
     company = _get_text_or_default(car, "span.cl--car-rent-info", "Unknown")
     company_logo = car.select_one(".cl--car-rent-logo img")
@@ -85,7 +74,6 @@ def parse_offer_card(car: Tag, position: int) -> CarOffer:
     refund_policy = _get_text_or_default(car, "ul.cl--interest", "Not Refundable")
     if len(refund_policy) < 3:
         refund_policy = "Not Refundable"
-    detail_action, detail_code = _extract_detail_request(car)
 
     return CarOffer(
         position=position,
@@ -100,8 +88,6 @@ def parse_offer_card(car: Tag, position: int) -> CarOffer:
         refund_policy=refund_policy,
         model=_get_text_or_default(car, "div.cl--name h2"),
         doors=_get_text_or_default(car, "li.tooltipBlanco.serv.sc-doors"),
-        detail_action=detail_action,
-        detail_code=detail_code,
     )
 
 

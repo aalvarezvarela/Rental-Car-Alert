@@ -19,6 +19,8 @@ poetry run playwright install chromium
 
 This project includes a local [poetry.toml](/home/adrian_alvarez/Projects/Rental-Car-Alert/poetry.toml), so Poetry creates the environment inside the repository at `.venv/`.
 
+The application also loads a `.env` file automatically by walking up from the current working directory. A project-root `.env` is the simplest way to store your pickup search and SMTP settings locally.
+
 ## How To Run It
 
 Single cycle:
@@ -45,7 +47,9 @@ The positional `115` is the price limit in euros. If omitted, the application us
 
 At minimum, configure:
 
-- `RCA_URL`
+- `RCA_PICKUP_LOCATION`
+- `RCA_PICKUP_DATE`
+- `RCA_RETURN_DATE`
 - `RCA_EMAIL_TO`
 - `RCA_SMTP_HOST`
 - `RCA_SMTP_PORT`
@@ -55,13 +59,29 @@ At minimum, configure:
 Example:
 
 ```bash
-export RCA_URL='https://www.doyouspain.com/do/list/en?s=...&b=...'
+export RCA_PICKUP_LOCATION='heraclion'
+export RCA_PICKUP_DATE='02-05-26'
+export RCA_RETURN_DATE='09-05-26'
 export RCA_EMAIL_TO='you@example.com'
 export RCA_EMAIL_FROM='alerts@example.com'
 export RCA_SMTP_HOST='smtp.gmail.com'
 export RCA_SMTP_PORT='587'
 export RCA_SMTP_USERNAME='alerts@example.com'
 export RCA_SMTP_PASSWORD='your-app-password'
+```
+
+Equivalent `.env` file:
+
+```bash
+RCA_PICKUP_LOCATION=heraclion
+RCA_PICKUP_DATE=02-05-26
+RCA_RETURN_DATE=09-05-26
+RCA_EMAIL_TO=you@example.com
+RCA_EMAIL_FROM=alerts@example.com
+RCA_SMTP_HOST=smtp.gmail.com
+RCA_SMTP_PORT=587
+RCA_SMTP_USERNAME=alerts@example.com
+RCA_SMTP_PASSWORD=your-app-password
 ```
 
 Then run:
@@ -78,7 +98,9 @@ poetry run python -m rental_car_alert [limit] [options]
 
 Options:
 
-- `--url`: Override the monitored DoYouSpain URL
+- `--pickup-location`: Pickup location text used in the autocomplete
+- `--pickup-date`: Pickup date
+- `--return-date`: Return date
 - `--recipient`: Override the destination email
 - `--sender`: Override the sender email
 - `--smtp-host`: SMTP server hostname
@@ -99,7 +121,9 @@ Options:
 
 Every CLI option has an environment-based default:
 
-- `RCA_URL`
+- `RCA_PICKUP_LOCATION`
+- `RCA_PICKUP_DATE`
+- `RCA_RETURN_DATE`
 - `RCA_PRICE_LIMIT`
 - `RCA_EMAIL_TO`
 - `RCA_EMAIL`
@@ -153,6 +177,16 @@ export RCA_SMTP_PASSWORD='your-16-char-app-password'
 `Monitoring cycle failed`
 
 - Re-run with `--once --no-headless` to inspect the live browser flow visually
+
+## Date Formats
+
+The application accepts these input formats for search dates:
+
+- `02-05-26`
+- `02-05-2026`
+- `02/05/26`
+- `02/05/2026`
+- `2026-05-02`
 
 ## Recreate The Environment From Scratch
 

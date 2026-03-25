@@ -1,21 +1,23 @@
 from __future__ import annotations
 
 import logging
+from datetime import date
 
 from bs4 import BeautifulSoup
 
 from rental_car_alert.config import BrowserSettings, SearchSettings
-from rental_car_alert.models import CarOffer
+from rental_car_alert.models import CarOffer, SearchRun
 from rental_car_alert.parsers.doyouspain import get_insurance_price, parse_offers
 
 LOGGER = logging.getLogger(__name__)
+HOME_URL = "https://www.doyouspain.com/"
 
 
 class DoyouSpainScraper:
     def __init__(self, browser_settings: BrowserSettings) -> None:
         self._browser_settings = browser_settings
 
-    def fetch_offers(self, search_settings: SearchSettings) -> list[CarOffer]:
+    def fetch_offers(self, search_settings: SearchSettings) -> SearchRun:
         try:
             from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
             from playwright.sync_api import sync_playwright
@@ -26,6 +28,7 @@ class DoyouSpainScraper:
             ) from exc
 
         offers: list[CarOffer] = []
+        results_url = ""
         with sync_playwright() as playwright:
             browser = playwright.chromium.launch(
                 headless=self._browser_settings.headless,
@@ -43,7 +46,12 @@ class DoyouSpainScraper:
             page.set_default_timeout(self._browser_settings.timeout_ms)
 
             try:
-                self._open_results(page, search_settings.url)
+                self._open_homepage(page)
+                self._perform_search(
+                    page=page,
+                    search_settings=search_settings,
+                    timeout_error=PlaywrightTimeoutError,
+                )
                 self._apply_filters(
                     page=page,
                     only_cancelable=search_settings.only_cancelable,
@@ -56,27 +64,69 @@ class DoyouSpainScraper:
                     offers=offers,
                     timeout_error=PlaywrightTimeoutError,
                 )
+                results_url = page.url
             finally:
                 context.close()
                 browser.close()
 
-        return offers
+        return SearchRun(offers=offers, results_url=results_url)
 
-    def _open_results(self, page, url: str) -> None:
-        LOGGER.info("Opening search page.")
-        page.goto(url, wait_until="domcontentloaded")
+    def _open_homepage(self, page) -> None:
+        LOGGER.info("Opening DoYouSpain homepage.")
+        page.goto(HOME_URL, wait_until="domcontentloaded")
         page.wait_for_timeout(1_000)
 
-    def _apply_filters(self, page, only_cancelable: bool, timeout_error: type[Exception]) -> None:
+    def _perform_search(
+        self,
+        page,
+        search_settings: SearchSettings,
+        timeout_error: type[Exception],
+    ) -> None:
         self._click_optional(page, "#checkAllOptions", "cookie acceptance", timeout_error)
-        self._click_optional(
-            page,
-            "#idSearchButton button#sendForm",
-            "search button",
-            timeout_error,
-        )
-        page.wait_for_timeout(5_000)
 
+        pickup_input = page.locator("#pickup")
+        pickup_input.wait_for(state="visible")
+        LOGGER.info("Filling pickup location with %r.", search_settings.pickup_location)
+        pickup_input.fill(search_settings.pickup_location)
+
+        suggestion = page.locator("#recogida_lista li").first
+        suggestion.wait_for(state="visible")
+        suggestion.click()
+        page.wait_for_timeout(500)
+        LOGGER.info("Selected first pickup suggestion.")
+
+        self._set_date_input(page, "#fechaRecogida", search_settings.pickup_date)
+        self._set_date_input(page, "#fechaDevolucion", search_settings.return_date)
+        LOGGER.info(
+            "Searching for offers from %s to %s.",
+            search_settings.pickup_date.isoformat(),
+            search_settings.return_date.isoformat(),
+        )
+
+        page.locator("#sendForm").click(no_wait_after=True)
+        try:
+            page.wait_for_url("**/do/list/**", timeout=5_000)
+        except timeout_error:
+            self._wait_for_results(page, timeout_error)
+        page.wait_for_timeout(3_000)
+
+    def _set_date_input(self, page, selector: str, value: date) -> None:
+        formatted = value.strftime("%d/%m/%Y")
+        page.locator(selector).evaluate(
+            """
+            (element, nextValue) => {
+                element.removeAttribute('readonly');
+                element.value = nextValue;
+                element.dispatchEvent(new Event('input', { bubbles: true }));
+                element.dispatchEvent(new Event('change', { bubbles: true }));
+                element.dispatchEvent(new Event('blur', { bubbles: true }));
+            }
+            """,
+            formatted,
+        )
+
+    def _apply_filters(self, page, only_cancelable: bool, timeout_error: type[Exception]) -> None:
+        self._wait_for_results(page, timeout_error)
         fuel_selectors = (
             '.fuel-option.fuel-option-none.tooltipBlancoBig[title*="Full/Full"]',
             '.fuel-option.fuel-option-none.tooltipBlancoBig[title*="Lleno/Lleno"]',
@@ -130,8 +180,8 @@ class DoyouSpainScraper:
         timeout_error: type[Exception],
     ) -> None:
         for offer in offers:
-            LOGGER.info(
-                "Checking base price for %s: %.2f €",
+            LOGGER.debug(
+                "Offer %s base price: %.2f €",
                 offer.model,
                 offer.price_without_insurance,
             )
@@ -139,6 +189,11 @@ class DoyouSpainScraper:
                 continue
             if not offer.is_fuel_policy_allowed():
                 continue
+            LOGGER.info(
+                "Opening detail popup for %s at %.2f €.",
+                offer.model,
+                offer.price_without_insurance,
+            )
             detail_button = page.locator(f'[name="coche{offer.position + 1}"]').first
 
             if detail_button.count() == 0:

@@ -45,9 +45,11 @@ This keeps runtime logic free of ad hoc environment lookups.
 It:
 
 - launches Chromium with Playwright
-- opens the DoYouSpain results page
+- opens the DoYouSpain homepage
 - accepts cookies when the banner is present
-- triggers the search flow
+- fills the pickup autocomplete and selects the first matching suggestion
+- sets pickup and return dates
+- submits the search form
 - applies the `Full/Full` fuel filter
 - optionally applies the cancelation filter
 - captures the rendered results HTML
@@ -66,21 +68,21 @@ It extracts:
 - refund policy
 - model
 - number of doors
-- direct detail page URL
 
 Each parsed card becomes a `CarOffer`.
 
 ### 5. Insurance Price Resolution
 
-The result list page is not enough on its own because the final insurance-inclusive price lives on each detail page.
+The result list page is not enough on its own because the final insurance-inclusive price lives behind each offer's detail action.
 
 For each offer whose base price is already below the threshold:
 
-- the scraper opens the parsed `detail_url`
+- the scraper clicks the matching results button
+- Playwright waits for the detail popup to open
 - the parser reads the insurance table or JavaScript fallback values
 - the `insurance_price` is attached to the `CarOffer`
 
-This avoids the brittle Selenium-era pattern of clicking card buttons and navigating back and forth through browser history.
+This keeps the scraper aligned with the live site flow instead of guessing at shared form actions or stale direct URLs.
 
 ### 6. Alert Filtering
 

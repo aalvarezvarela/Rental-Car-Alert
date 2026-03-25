@@ -17,8 +17,6 @@ class CarOffer:
     refund_policy: str
     model: str
     doors: str
-    detail_action: str | None = None
-    detail_code: str | None = None
     insurance_price: float | None = None
 
     def is_fuel_policy_allowed(self) -> bool:
@@ -51,3 +49,9 @@ class CarOffer:
         if self.insurance_price is not None:
             values.append(self.insurance_price)
         return values
+
+
+@dataclass(slots=True, frozen=True)
+class SearchRun:
+    offers: list[CarOffer]
+    results_url: str

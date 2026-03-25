@@ -43,11 +43,14 @@ class RentalCarMonitor:
 
     def run_cycle(self) -> None:
         LOGGER.info(
-            "Starting lookup with limit %.2f € for %s",
+            "Starting lookup with limit %.2f € for %s (%s to %s)",
             self._config.search.limit,
-            self._config.search.url,
+            self._config.search.pickup_location,
+            self._config.search.pickup_date.isoformat(),
+            self._config.search.return_date.isoformat(),
         )
-        offers = self._scraper.fetch_offers(self._config.search)
+        search_run = self._scraper.fetch_offers(self._config.search)
+        offers = search_run.offers
         alert_candidates = [
             offer
             for offer in offers
@@ -81,7 +84,7 @@ class RentalCarMonitor:
             offers=alert_candidates,
             insurance_limit=self._config.search.insurance_limit,
             limit=self._config.search.limit,
-            url=self._config.search.url,
+            url=search_run.results_url,
         )
 
         if self._email_client.send(subject, text_body, html_body):
