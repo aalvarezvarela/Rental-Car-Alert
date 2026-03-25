@@ -10,6 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      TZ: "Europe/Madrid"
       RCA_PICKUP_LOCATION: "Heraclion Airport"
       RCA_PICKUP_DATE: "2026-06-21"
       RCA_RETURN_DATE: "2026-07-08"
@@ -44,3 +45,11 @@ jobs:
 
       - name: Run rental car monitor
         run: poetry run python -m rental_car_alert
+
+      - name: Upload diagnostics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rental-car-alert-diagnostics
+          path: debug_artifacts/
+          if-no-files-found: ignore

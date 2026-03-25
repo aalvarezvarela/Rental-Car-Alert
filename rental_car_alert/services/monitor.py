@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import random
 import time
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from rental_car_alert.config import AppConfig
 from rental_car_alert.notifications import build_email_body, serialize_alert_snapshot
@@ -42,6 +42,16 @@ class RentalCarMonitor:
             self._sleep(self._build_wait_time())
 
     def run_cycle(self) -> None:
+        today = self._today()
+        if today >= self._config.search.pickup_date:
+            LOGGER.info(
+                "Skipping lookup because today is %s and the rental starts on %s.",
+                today.isoformat(),
+                self._config.search.pickup_date.isoformat(),
+            )
+            self._last_snapshot = ""
+            return
+
         LOGGER.info(
             "Starting lookup with limit %.2f € for %s (%s to %s)",
             self._config.search.limit,
@@ -107,3 +117,6 @@ class RentalCarMonitor:
             seconds / 3600,
         )
         time.sleep(seconds)
+
+    def _today(self) -> date:
+        return datetime.now().astimezone().date()

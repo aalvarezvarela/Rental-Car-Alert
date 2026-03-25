@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from datetime import date
+from datetime import date, datetime
+from pathlib import Path
 
 from bs4 import BeautifulSoup
 
@@ -11,6 +12,8 @@ from rental_car_alert.parsers.doyouspain import get_insurance_price, parse_offer
 
 LOGGER = logging.getLogger(__name__)
 HOME_URL = "https://www.doyouspain.com/"
+DEBUG_DIR = Path("debug_artifacts")
+LOG_PREVIEW_LIMIT = 4_000
 
 
 class DoyouSpainScraper:
@@ -162,7 +165,53 @@ class DoyouSpainScraper:
         soup = BeautifulSoup(page_content, features="lxml")
         offers = parse_offers(soup)
         LOGGER.info("Parsed %s offers from the results page.", len(offers))
+        if not offers:
+            self._dump_page_diagnostics(page, "empty_results")
         return offers
+
+    def _dump_page_diagnostics(self, page, reason: str) -> None:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_name = f"{reason}_{timestamp}"
+        DEBUG_DIR.mkdir(parents=True, exist_ok=True)
+
+        html_path = DEBUG_DIR / f"{base_name}.html"
+        screenshot_path = DEBUG_DIR / f"{base_name}.png"
+        html_content = ""
+
+        try:
+            html_content = page.content()
+            html_path.write_text(html_content, encoding="utf-8")
+        except Exception:
+            LOGGER.exception("Failed to write page HTML diagnostics.")
+            html_path = None
+
+        try:
+            page.screenshot(path=str(screenshot_path), full_page=True)
+        except Exception:
+            LOGGER.exception("Failed to write page screenshot diagnostics.")
+            screenshot_path = None
+
+        try:
+            body_preview = page.evaluate(
+                "() => (document.body?.innerText || '').replace(/\\s+/g, ' ').trim().slice(0, 2000)"
+            )
+        except Exception:
+            body_preview = ""
+
+        LOGGER.warning("Empty results diagnostics URL: %s", page.url)
+        LOGGER.warning("Empty results diagnostics title: %s", page.title())
+        if body_preview:
+            LOGGER.warning("Empty results diagnostics body preview: %s", body_preview)
+        if html_content:
+            LOGGER.warning(
+                "Empty results diagnostics HTML preview (%s chars): %s",
+                min(len(html_content), LOG_PREVIEW_LIMIT),
+                html_content[:LOG_PREVIEW_LIMIT],
+            )
+        if html_path is not None:
+            LOGGER.warning("Saved page HTML diagnostics to %s", html_path)
+        if screenshot_path is not None:
+            LOGGER.warning("Saved page screenshot diagnostics to %s", screenshot_path)
 
     def _populate_insurance_prices(
         self,
