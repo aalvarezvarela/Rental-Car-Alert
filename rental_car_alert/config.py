@@ -6,6 +6,11 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 
+from rental_car_alert.models import (
+    DEFAULT_ALLOWED_FUEL_POLICIES,
+    normalize_fuel_policy,
+)
+
 
 DEFAULT_RECIPIENT = "adrianalvarez3091@gmail.com"
 DEFAULT_SENDER = "rent.a.car.alert@gmail.com"
@@ -63,6 +68,24 @@ def _parse_date(raw_value: str) -> date:
     )
 
 
+def _parse_fuel_policies(raw_value: str | None) -> frozenset[str]:
+    if raw_value is None or not raw_value.strip():
+        return DEFAULT_ALLOWED_FUEL_POLICIES
+
+    normalized = raw_value.strip().lower()
+    if normalized in {"any", "all", "*"}:
+        return frozenset()
+
+    policies = [
+        normalize_fuel_policy(policy)
+        for policy in raw_value.split(",")
+        if policy.strip()
+    ]
+    if not policies:
+        return DEFAULT_ALLOWED_FUEL_POLICIES
+    return frozenset(policies)
+
+
 @dataclass(frozen=True, slots=True)
 class SearchSettings:
     pickup_location: str
@@ -71,6 +94,7 @@ class SearchSettings:
     return_date: date
     insurance_limit: bool
     only_cancelable: bool
+    fuel_policies: frozenset[str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -191,6 +215,15 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Only inspect offers with free cancellation.",
     )
     parser.add_argument(
+        "--fuel-policies",
+        type=_parse_fuel_policies,
+        default=_parse_fuel_policies(os.getenv("RCA_FUEL_POLICIES")),
+        help=(
+            "Comma-separated allowed fuel policies. Examples: "
+            "'full/full,like for like' or 'any'."
+        ),
+    )
+    parser.add_argument(
         "--interval-seconds",
         type=int,
         default=int(os.getenv("RCA_INTERVAL_SECONDS", str(DEFAULT_POLL_INTERVAL_SECONDS))),
@@ -257,6 +290,7 @@ def load_config(argv: list[str] | None = None) -> AppConfig:
             return_date=args.return_date,
             insurance_limit=args.insurance_limit,
             only_cancelable=args.only_cancelable,
+            fuel_policies=args.fuel_policies,
         ),
         browser=BrowserSettings(
             headless=args.headless,

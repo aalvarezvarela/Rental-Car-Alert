@@ -341,7 +341,7 @@ class DoyouSpainScraper:
             )
             if not offer.price_without_insurance < search_settings.limit:
                 continue
-            if not offer.is_fuel_policy_allowed():
+            if not offer.is_fuel_policy_allowed(search_settings.fuel_policies):
                 continue
             LOGGER.info(
                 "Opening detail popup for %s at %.2f €.",

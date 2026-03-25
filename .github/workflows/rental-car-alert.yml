@@ -16,9 +16,11 @@ jobs:
       RCA_PICKUP_LOCATION: "Heraclion Airport"
       RCA_PICKUP_DATE: "2026-06-21"
       RCA_RETURN_DATE: "2026-07-08"
-      RCA_PRICE_LIMIT: "615"
+      RCA_PRICE_LIMIT: "360"
       RCA_HEADLESS: "true"
       RCA_INSURANCE_LIMIT: "true"
+      RCA_ONLY_CANCELABLE: "false"
+      RCA_FUEL_POLICIES: "full/full,igual/igual,like for like, Igual - Igual"
       RCA_RUN_ONCE: "true"
       RCA_EMAIL_TO: ${{ secrets.RCA_EMAIL_TO }}
       RCA_EMAIL_FROM: ${{ secrets.RCA_EMAIL_FROM }}

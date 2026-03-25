@@ -67,6 +67,7 @@ class RentalCarMonitor:
             if offer.qualifies_for_alert(
                 limit=self._config.search.limit,
                 insurance_limit=self._config.search.insurance_limit,
+                allowed_fuel_policies=self._config.search.fuel_policies,
             )
         ]
 
