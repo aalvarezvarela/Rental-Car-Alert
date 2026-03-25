@@ -91,6 +91,7 @@ class DoyouSpainScraper:
         pickup_input.wait_for(state="visible")
         LOGGER.info("Filling pickup location with %r.", search_settings.pickup_location)
         pickup_input.fill(search_settings.pickup_location)
+        page.wait_for_timeout(1_500)
         self._select_first_pickup_suggestion(page, timeout_error)
 
         self._set_date_input(page, "#fechaRecogida", search_settings.pickup_date)
@@ -146,12 +147,12 @@ class DoyouSpainScraper:
                 const element = document.querySelector(selector);
                 return !!element && element.value === formatted;
             }""",
-            {"selector": selector, "formatted": formatted},
+            arg={"selector": selector, "formatted": formatted},
         )
 
     def _select_first_pickup_suggestion(self, page, timeout_error: type[Exception]) -> None:
         suggestion = page.locator("#recogida_lista li").first
-        suggestion.wait_for(state="attached")
+        suggestion.wait_for(state="visible")
         option_data = suggestion.evaluate(
             """
             (element) => ({
@@ -196,9 +197,16 @@ class DoyouSpainScraper:
             option_data,
         )
 
-        page.wait_for_function(
-            "() => !!document.querySelector('#destino')?.value && !!document.querySelector('#pickup')?.value"
-        )
+        state = self._read_form_state(page)
+        for _ in range(20):
+            if state["destino"] and state["pickup"]:
+                break
+            page.wait_for_timeout(200)
+            state = self._read_form_state(page)
+        else:
+            raise RuntimeError(
+                "Pickup autocomplete did not populate the submitted destination fields."
+            )
         LOGGER.info(
             "Selected first pickup suggestion: %s (%s).",
             option_data["id"] or option_data["label"],
@@ -206,7 +214,11 @@ class DoyouSpainScraper:
         )
 
     def _log_form_state(self, page) -> None:
-        state = page.evaluate(
+        state = self._read_form_state(page)
+        LOGGER.info("Search form state before submit: %s", state)
+
+    def _read_form_state(self, page) -> dict[str, str]:
+        return page.evaluate(
             """
             () => ({
                 pickup: document.querySelector('#pickup')?.value || '',
@@ -222,7 +234,6 @@ class DoyouSpainScraper:
             })
             """
         )
-        LOGGER.info("Search form state before submit: %s", state)
 
     def _apply_filters(self, page, only_cancelable: bool, timeout_error: type[Exception]) -> None:
         self._wait_for_results(page, timeout_error)
