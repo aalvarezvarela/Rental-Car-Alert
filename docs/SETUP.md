@@ -62,6 +62,7 @@ Example:
 export RCA_PICKUP_LOCATION='heraclion'
 export RCA_PICKUP_DATE='02-05-26'
 export RCA_RETURN_DATE='09-05-26'
+export RCA_PICKUP_TIME='12 30'
 export RCA_EMAIL_TO='you@example.com'
 export RCA_EMAIL_FROM='alerts@example.com'
 export RCA_SMTP_HOST='smtp.gmail.com'
@@ -76,6 +77,7 @@ Equivalent `.env` file:
 RCA_PICKUP_LOCATION=heraclion
 RCA_PICKUP_DATE=02-05-26
 RCA_RETURN_DATE=09-05-26
+RCA_PICKUP_TIME=12 30
 RCA_EMAIL_TO=you@example.com
 RCA_EMAIL_FROM=alerts@example.com
 RCA_SMTP_HOST=smtp.gmail.com
@@ -101,6 +103,7 @@ Options:
 - `--pickup-location`: Pickup location text used in the autocomplete
 - `--pickup-date`: Pickup date
 - `--return-date`: Return date
+- `--pickup-time`: Pickup time applied to both pickup and return
 - `--recipient`: Override the destination email
 - `--sender`: Override the sender email
 - `--smtp-host`: SMTP server hostname
@@ -124,6 +127,7 @@ Every CLI option has an environment-based default:
 - `RCA_PICKUP_LOCATION`
 - `RCA_PICKUP_DATE`
 - `RCA_RETURN_DATE`
+- `RCA_PICKUP_TIME`
 - `RCA_PRICE_LIMIT`
 - `RCA_EMAIL_TO`
 - `RCA_EMAIL`
@@ -188,6 +192,14 @@ The application accepts these input formats for search dates:
 - `02/05/2026`
 - `2026-05-02`
 
+## Time Formats
+
+The application accepts these input formats for the optional pickup time:
+
+- `12:30`
+- `12 30`
+- `1230`
+
 ## Recreate The Environment From Scratch
 
 If you deleted the environment, recreate it with:
@@ -219,7 +231,8 @@ The workflow is preconfigured with these search values:
 - `RCA_PICKUP_LOCATION=Heraclion Airport`
 - `RCA_PICKUP_DATE=2026-06-21`
 - `RCA_RETURN_DATE=2026-07-08`
-- `RCA_PRICE_LIMIT=115`
+- `RCA_PICKUP_TIME=12 30`
+- `RCA_PRICE_LIMIT=360`
 - `RCA_HEADLESS=true`
 - `RCA_RUN_ONCE=true`
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import random
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pathlib import Path
 
 from bs4 import BeautifulSoup
@@ -99,11 +99,29 @@ class DoyouSpainScraper:
 
         self._set_date_input(page, "#fechaRecogida", search_settings.pickup_date)
         self._set_date_input(page, "#fechaDevolucion", search_settings.return_date)
+        if search_settings.pickup_time is not None:
+            self._set_time_input(
+                page,
+                hour_selector="#horarecogida",
+                minute_selector="#minutosrecogida",
+                value=search_settings.pickup_time,
+            )
+            self._set_time_input(
+                page,
+                hour_selector="#horadevolucion",
+                minute_selector="#minutosdevolucion",
+                value=search_settings.pickup_time,
+            )
         self._log_form_state(page)
         LOGGER.info(
-            "Searching for offers from %s to %s.",
+            "Searching for offers from %s to %s%s.",
             search_settings.pickup_date.isoformat(),
             search_settings.return_date.isoformat(),
+            (
+                f" at {search_settings.pickup_time.strftime('%H:%M')}"
+                if search_settings.pickup_time is not None
+                else ""
+            ),
         )
 
         self._human_pause(page)
@@ -152,6 +170,79 @@ class DoyouSpainScraper:
                 return !!element && element.value === formatted;
             }""",
             arg={"selector": selector, "formatted": formatted},
+        )
+
+    def _set_time_input(
+        self,
+        page,
+        hour_selector: str,
+        minute_selector: str,
+        value: time,
+    ) -> None:
+        page.evaluate(
+            """
+            ({ hourSelector, minuteSelector, hour, minute }) => {
+                const setSelect = (selector, rawValue) => {
+                    const element = document.querySelector(selector);
+                    if (!element) {
+                        return false;
+                    }
+
+                    const candidates = [
+                        rawValue,
+                        rawValue.padStart(2, '0'),
+                        String(Number(rawValue)),
+                    ];
+                    const options = Array.from(element.options || []);
+                    const matchedOption = options.find((option) => {
+                        const optionValue = (option.value || '').trim();
+                        const optionText = (option.textContent || '').trim();
+                        return candidates.includes(optionValue) || candidates.includes(optionText);
+                    });
+
+                    const nextValue = matchedOption ? matchedOption.value : rawValue;
+                    element.value = nextValue;
+                    element.setAttribute('value', nextValue);
+                    element.dispatchEvent(new Event('input', { bubbles: true }));
+                    element.dispatchEvent(new Event('change', { bubbles: true }));
+                    element.dispatchEvent(new Event('blur', { bubbles: true }));
+                    return element.value === nextValue;
+                };
+
+                return (
+                    setSelect(hourSelector, hour) &&
+                    setSelect(minuteSelector, minute)
+                );
+            }
+            """,
+            {
+                "hourSelector": hour_selector,
+                "minuteSelector": minute_selector,
+                "hour": value.strftime("%H"),
+                "minute": value.strftime("%M"),
+            },
+        )
+        page.wait_for_function(
+            """
+            ({ hourSelector, minuteSelector, hour, minute }) => {
+                const matches = (selector, expected) => {
+                    const element = document.querySelector(selector);
+                    if (!element) {
+                        return false;
+                    }
+                    const normalized = [expected, String(Number(expected))];
+                    return normalized.includes(element.value);
+                };
+
+                return matches(hourSelector, hour) && matches(minuteSelector, minute);
+            }
+            """,
+            arg={
+                "hourSelector": hour_selector,
+                "minuteSelector": minute_selector,
+                "hour": value.strftime("%H"),
+                "minute": value.strftime("%M"),
+            },
         )
 
     def _select_first_pickup_suggestion(self, page, timeout_error: type[Exception]) -> None:

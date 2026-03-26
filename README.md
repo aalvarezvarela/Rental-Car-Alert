@@ -37,6 +37,7 @@ Run one cycle:
 RCA_PICKUP_LOCATION="heraclion" \
 RCA_PICKUP_DATE="02-05-26" \
 RCA_RETURN_DATE="09-05-26" \
+RCA_PICKUP_TIME="12 30" \
 RCA_SMTP_PASSWORD="your-app-password" \
 poetry run python -m rental_car_alert 115 --once
 ```
@@ -53,6 +54,7 @@ Run continuously:
 RCA_PICKUP_LOCATION="heraclion" \
 RCA_PICKUP_DATE="02-05-26" \
 RCA_RETURN_DATE="09-05-26" \
+RCA_PICKUP_TIME="12 30" \
 poetry run python -m rental_car_alert 115
 ```
 
@@ -72,6 +74,7 @@ poetry run python -m rental_car_alert 115
 - `RCA_PICKUP_LOCATION`: Pickup location text, for example `heraclion`
 - `RCA_PICKUP_DATE`: Pickup date, for example `02-05-26`
 - `RCA_RETURN_DATE`: Return date, for example `09-05-26`
+- `RCA_PICKUP_TIME`: Optional pickup time applied to both pickup and return, for example `12 30`
 - `RCA_PRICE_LIMIT`: Alert threshold in euros
 - `RCA_EMAIL_TO`: Recipient email
 - `RCA_EMAIL_FROM`: Sender email
@@ -94,6 +97,7 @@ It is preconfigured for:
 - pickup location: `Heraclion Airport`
 - pickup date: `2026-06-21`
 - return date: `2026-07-08`
+- pickup/return time: `12 30`
 
 To make it work, add these repository secrets:
 

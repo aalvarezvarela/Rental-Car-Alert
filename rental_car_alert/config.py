@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import os
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pathlib import Path
 
 from rental_car_alert.models import (
@@ -68,6 +68,18 @@ def _parse_date(raw_value: str) -> date:
     )
 
 
+def _parse_time(raw_value: str) -> time:
+    normalized = raw_value.strip()
+    for fmt in ("%H:%M", "%H %M", "%H%M"):
+        try:
+            return datetime.strptime(normalized, fmt).time()
+        except ValueError:
+            continue
+    raise argparse.ArgumentTypeError(
+        f"Invalid time: {raw_value!r}. Use formats like 12:30 or 12 30."
+    )
+
+
 def _parse_fuel_policies(raw_value: str | None) -> frozenset[str]:
     if raw_value is None or not raw_value.strip():
         return DEFAULT_ALLOWED_FUEL_POLICIES
@@ -92,6 +104,7 @@ class SearchSettings:
     limit: float
     pickup_date: date
     return_date: date
+    pickup_time: time | None
     insurance_limit: bool
     only_cancelable: bool
     fuel_policies: frozenset[str]
@@ -164,6 +177,14 @@ def build_argument_parser() -> argparse.ArgumentParser:
         if os.getenv("RCA_RETURN_DATE")
         else None,
         help="Return date. Example: 09-05-26",
+    )
+    parser.add_argument(
+        "--pickup-time",
+        type=_parse_time,
+        default=_parse_time(os.getenv("RCA_PICKUP_TIME"))
+        if os.getenv("RCA_PICKUP_TIME")
+        else None,
+        help="Pickup time applied to both pickup and return. Example: 12:30",
     )
     parser.add_argument(
         "--recipient",
@@ -288,6 +309,7 @@ def load_config(argv: list[str] | None = None) -> AppConfig:
             limit=args.limit,
             pickup_date=args.pickup_date,
             return_date=args.return_date,
+            pickup_time=args.pickup_time,
             insurance_limit=args.insurance_limit,
             only_cancelable=args.only_cancelable,
             fuel_policies=args.fuel_policies,
