@@ -100,6 +100,8 @@ The key rules are:
 
 [services/monitor.py](/home/adrian_alvarez/Projects/Rental-Car-Alert/rental_car_alert/services/monitor.py) compares that snapshot to the previous cycle and only sends a new email when the result set changes.
 
+When `RCA_SNAPSHOT_FILE` or `--snapshot-file` is configured, that snapshot is also persisted to disk. This lets scheduled GitHub Actions runs suppress duplicate emails even though each run starts a fresh Python process.
+
 This prevents repeated notifications for the same matching offers.
 
 ### 8. Email Delivery

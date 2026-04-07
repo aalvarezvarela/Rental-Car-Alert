@@ -6,6 +6,10 @@ on:
     - cron: "36 7-23 * * *"
     - cron: "36 0,2,4,6 * * *"
 
+concurrency:
+  group: heraklion-rental-car-alert
+  cancel-in-progress: false
+
 jobs:
   heraklion_monitor:
     name: Heraklion Monitor
@@ -17,12 +21,13 @@ jobs:
       RCA_PICKUP_DATE: "2026-06-23"
       RCA_RETURN_DATE: "2026-07-07"
       RCA_PICKUP_TIME: "18 00"
-      RCA_PRICE_LIMIT: "315"
+      RCA_PRICE_LIMIT: "300"
       RCA_HEADLESS: "true"
       RCA_INSURANCE_LIMIT: "true"
       RCA_ONLY_CANCELABLE: "false"
       RCA_FUEL_POLICIES: "full/full,igual/igual,like for like, Igual - Igual"
       RCA_RUN_ONCE: "true"
+      RCA_SNAPSHOT_FILE: ".cache/heraklion_alert_snapshot.json"
       RCA_EMAIL_TO: ${{ secrets.RCA_EMAIL_TO }}
       RCA_EMAIL_FROM: ${{ secrets.RCA_EMAIL_FROM }}
       RCA_SMTP_HOST: ${{ secrets.RCA_SMTP_HOST }}
@@ -32,6 +37,14 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+
+      - name: Restore alert snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/heraklion_alert_snapshot.json
+          key: heraklion-alert-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            heraklion-alert-snapshot-
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -50,6 +63,17 @@ jobs:
 
       - name: Run rental car monitor
         run: poetry run python -m rental_car_alert
+
+      - name: Ensure alert snapshot path exists
+        if: always()
+        run: mkdir -p "$(dirname "$RCA_SNAPSHOT_FILE")" && touch "$RCA_SNAPSHOT_FILE"
+
+      - name: Save alert snapshot
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/heraklion_alert_snapshot.json
+          key: heraklion-alert-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload diagnostics artifacts
         if: always()

@@ -162,6 +162,7 @@ Every CLI option has an environment-based default:
 - `RCA_PROXY_SERVER`
 - `RCA_PROXY_USERNAME`
 - `RCA_PROXY_PASSWORD`
+- `RCA_SNAPSHOT_FILE`
 - `RCA_RUN_ONCE`
 
 ## Browser Location
@@ -242,23 +243,24 @@ poetry env info
 
 ## GitHub Actions Setup
 
-The repository includes [rental-car-alert.yml](/home/adrian_alvarez/Projects/Rental-Car-Alert/.github/workflows/rental-car-alert.yml).
+The repository includes [heraklion_alert.yml](/home/adrian_alvarez/Projects/Rental-Car-Alert/.github/workflows/heraklion_alert.yml).
 
 It runs:
 
 - on `workflow_dispatch`
-- every 6 hours via cron
+- on a scheduled cron cadence
 - in headless mode so Playwright works reliably on GitHub-hosted runners
 
 The workflow is preconfigured with these search values:
 
 - `RCA_PICKUP_LOCATION=Heraclion Airport`
-- `RCA_PICKUP_DATE=2026-06-21`
-- `RCA_RETURN_DATE=2026-07-08`
-- `RCA_PICKUP_TIME=12 30`
-- `RCA_PRICE_LIMIT=360`
+- `RCA_PICKUP_DATE=2026-06-23`
+- `RCA_RETURN_DATE=2026-07-07`
+- `RCA_PICKUP_TIME=18 00`
+- `RCA_PRICE_LIMIT=300`
 - `RCA_HEADLESS=true`
 - `RCA_RUN_ONCE=true`
+- `RCA_SNAPSHOT_FILE=.cache/heraklion_alert_snapshot.json`
 
 Add these repository secrets in `Settings -> Secrets and variables -> Actions`:
 
@@ -270,3 +272,5 @@ Add these repository secrets in `Settings -> Secrets and variables -> Actions`:
 - `RCA_SMTP_PASSWORD`: SMTP password or Gmail app password
 
 If you use Gmail, `RCA_SMTP_PASSWORD` should be a Gmail app password, not your normal account password.
+
+The workflow restores and saves the snapshot file through the GitHub Actions cache. That prevents repeated emails for unchanged matching offers across scheduled runs.

@@ -22,7 +22,11 @@ class EmailClient:
             "smtp_username": self._settings.smtp_username,
             "smtp_password": self._settings.smtp_password,
         }
-        return [name for name, value in fields.items() if not value]
+        return [
+            name
+            for name, value in fields.items()
+            if value is None or (isinstance(value, str) and not value.strip())
+        ]
 
     @property
     def is_configured(self) -> bool:

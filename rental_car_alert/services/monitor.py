@@ -4,6 +4,7 @@ import logging
 import random
 import time
 from datetime import date, datetime, timedelta
+from pathlib import Path
 
 from rental_car_alert.config import AppConfig
 from rental_car_alert.notifications import build_email_body, serialize_alert_snapshot
@@ -23,7 +24,7 @@ class RentalCarMonitor:
         self._config = config
         self._scraper = scraper
         self._email_client = email_client
-        self._last_snapshot = ""
+        self._last_snapshot = self._load_last_snapshot()
 
     def run_forever(self) -> None:
         while True:
@@ -49,7 +50,7 @@ class RentalCarMonitor:
                 today.isoformat(),
                 self._config.search.pickup_date.isoformat(),
             )
-            self._last_snapshot = ""
+            self._set_last_snapshot("")
             return
 
         LOGGER.info(
@@ -76,7 +77,7 @@ class RentalCarMonitor:
                 "No cars found cheaper than %.2f €.",
                 self._config.search.limit,
             )
-            self._last_snapshot = ""
+            self._set_last_snapshot("")
             return
 
         snapshot = serialize_alert_snapshot(
@@ -87,10 +88,7 @@ class RentalCarMonitor:
             LOGGER.info("Results already notified in the previous lookup.")
             return
 
-        subject = (
-            f"Rental Car Alert: {len(alert_candidates)} offer(s) below "
-            f"{self._config.search.limit:.2f} EUR"
-        )
+        subject = self._build_email_subject(len(alert_candidates))
         text_body, html_body = build_email_body(
             offers=alert_candidates,
             insurance_limit=self._config.search.insurance_limit,
@@ -99,9 +97,61 @@ class RentalCarMonitor:
         )
 
         if self._email_client.send(subject, text_body, html_body):
-            self._last_snapshot = snapshot
+            self._set_last_snapshot(snapshot)
         else:
             LOGGER.warning("Alert email was not delivered.")
+
+    def _build_email_subject(self, alert_count: int) -> str:
+        offer_label = "offer" if alert_count == 1 else "offers"
+        price_mode = (
+            "with insurance"
+            if self._config.search.insurance_limit
+            else "base price"
+        )
+        return (
+            f"{self._config.search.pickup_location}: "
+            f"{alert_count} {offer_label} under "
+            f"{self._config.search.limit:.2f} EUR "
+            f"({price_mode}, "
+            f"{self._config.search.pickup_date.isoformat()} to "
+            f"{self._config.search.return_date.isoformat()})"
+        )
+
+    def _load_last_snapshot(self) -> str:
+        snapshot_file = self._config.monitor.snapshot_file
+        if snapshot_file is None:
+            return ""
+
+        try:
+            snapshot = snapshot_file.read_text(encoding="utf-8")
+        except FileNotFoundError:
+            return ""
+        except OSError:
+            LOGGER.exception("Failed to read alert snapshot from %s.", snapshot_file)
+            return ""
+
+        LOGGER.info("Loaded previous alert snapshot from %s.", snapshot_file)
+        return snapshot
+
+    def _set_last_snapshot(self, snapshot: str) -> None:
+        self._last_snapshot = snapshot
+        self._save_last_snapshot(snapshot)
+
+    def _save_last_snapshot(self, snapshot: str) -> None:
+        snapshot_file = self._config.monitor.snapshot_file
+        if snapshot_file is None:
+            return
+
+        try:
+            snapshot_file.parent.mkdir(parents=True, exist_ok=True)
+            temporary_file = self._temporary_snapshot_file(snapshot_file)
+            temporary_file.write_text(snapshot, encoding="utf-8")
+            temporary_file.replace(snapshot_file)
+        except OSError:
+            LOGGER.exception("Failed to write alert snapshot to %s.", snapshot_file)
+
+    def _temporary_snapshot_file(self, snapshot_file: Path) -> Path:
+        return snapshot_file.with_name(f"{snapshot_file.name}.tmp")
 
     def _build_wait_time(self) -> int:
         multiplier = random.uniform(

@@ -33,6 +33,13 @@ DEFAULT_BROWSER_GEOLOCATION_ACCURACY_METERS = 50
 DEFAULT_ACCEPT_LANGUAGE = "es-ES,es;q=0.9,en;q=0.8"
 
 
+def _env_value(name: str, default: str = "") -> str:
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return value.strip()
+
+
 def _load_dotenv() -> None:
     for base_path in [Path.cwd(), *Path.cwd().parents]:
         env_path = base_path / ".env"
@@ -52,7 +59,7 @@ def _load_dotenv() -> None:
 
 
 def _parse_bool(raw_value: str | None, default: bool) -> bool:
-    if raw_value is None:
+    if raw_value is None or not raw_value.strip():
         return default
     return raw_value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
@@ -151,6 +158,7 @@ class MonitorSettings:
     jitter_min: float
     jitter_max: float
     run_once: bool
+    snapshot_file: Path | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -169,91 +177,94 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "limit",
         nargs="?",
         type=_parse_limit,
-        default=_parse_limit(os.getenv("RCA_PRICE_LIMIT", str(DEFAULT_PRICE_LIMIT))),
+        default=_parse_limit(_env_value("RCA_PRICE_LIMIT", str(DEFAULT_PRICE_LIMIT))),
         help="Alert threshold in euros.",
     )
     parser.add_argument(
         "--pickup-location",
-        default=os.getenv("RCA_PICKUP_LOCATION", ""),
+        default=_env_value("RCA_PICKUP_LOCATION"),
         help="Pickup location text used in the DoYouSpain autocomplete.",
     )
     parser.add_argument(
         "--pickup-date",
         type=_parse_date,
-        default=_parse_date(os.getenv("RCA_PICKUP_DATE"))
-        if os.getenv("RCA_PICKUP_DATE")
+        default=_parse_date(_env_value("RCA_PICKUP_DATE"))
+        if _env_value("RCA_PICKUP_DATE")
         else None,
         help="Pickup date. Example: 02-05-26",
     )
     parser.add_argument(
         "--return-date",
         type=_parse_date,
-        default=_parse_date(os.getenv("RCA_RETURN_DATE"))
-        if os.getenv("RCA_RETURN_DATE")
+        default=_parse_date(_env_value("RCA_RETURN_DATE"))
+        if _env_value("RCA_RETURN_DATE")
         else None,
         help="Return date. Example: 09-05-26",
     )
     parser.add_argument(
         "--pickup-time",
         type=_parse_time,
-        default=_parse_time(os.getenv("RCA_PICKUP_TIME"))
-        if os.getenv("RCA_PICKUP_TIME")
+        default=_parse_time(_env_value("RCA_PICKUP_TIME"))
+        if _env_value("RCA_PICKUP_TIME")
         else None,
         help="Pickup time applied to both pickup and return. Example: 12:30",
     )
     parser.add_argument(
         "--recipient",
-        default=os.getenv("RCA_EMAIL_TO", os.getenv("RCA_EMAIL", DEFAULT_RECIPIENT)),
+        default=_env_value("RCA_EMAIL_TO", _env_value("RCA_EMAIL", DEFAULT_RECIPIENT)),
         help="Email address that will receive alerts.",
     )
     parser.add_argument(
         "--sender",
-        default=os.getenv("RCA_EMAIL_FROM", DEFAULT_SENDER),
+        default=_env_value("RCA_EMAIL_FROM", DEFAULT_SENDER),
         help="SMTP sender address.",
     )
     parser.add_argument(
         "--smtp-host",
-        default=os.getenv("RCA_SMTP_HOST", "smtp.gmail.com"),
+        default=_env_value("RCA_SMTP_HOST", "smtp.gmail.com"),
         help="SMTP hostname.",
     )
     parser.add_argument(
         "--smtp-port",
         type=int,
-        default=int(os.getenv("RCA_SMTP_PORT", "587")),
+        default=int(_env_value("RCA_SMTP_PORT", "587")),
         help="SMTP port.",
     )
     parser.add_argument(
         "--smtp-username",
-        default=os.getenv("RCA_SMTP_USERNAME", os.getenv("RCA_EMAIL_FROM", DEFAULT_SENDER)),
+        default=_env_value(
+            "RCA_SMTP_USERNAME",
+            _env_value("RCA_EMAIL_FROM", DEFAULT_SENDER),
+        ),
         help="SMTP username.",
     )
     parser.add_argument(
         "--smtp-password",
-        default=os.getenv("RCA_SMTP_PASSWORD", ""),
+        default=_env_value("RCA_SMTP_PASSWORD"),
         help="SMTP password or app password.",
     )
     parser.add_argument(
         "--headless",
         action=argparse.BooleanOptionalAction,
-        default=_parse_bool(os.getenv("RCA_HEADLESS"), False),
+        default=_parse_bool(_env_value("RCA_HEADLESS"), False),
         help="Run the browser in headless mode.",
     )
     parser.add_argument(
         "--insurance-limit",
         action=argparse.BooleanOptionalAction,
-        default=_parse_bool(os.getenv("RCA_INSURANCE_LIMIT"), True),
+        default=_parse_bool(_env_value("RCA_INSURANCE_LIMIT"), True),
         help="Evaluate alerts using the total insurance-inclusive price.",
     )
     parser.add_argument(
         "--only-cancelable",
         action=argparse.BooleanOptionalAction,
-        default=_parse_bool(os.getenv("RCA_ONLY_CANCELABLE"), False),
+        default=_parse_bool(_env_value("RCA_ONLY_CANCELABLE"), False),
         help="Only inspect offers with free cancellation.",
     )
     parser.add_argument(
         "--fuel-policies",
         type=_parse_fuel_policies,
-        default=_parse_fuel_policies(os.getenv("RCA_FUEL_POLICIES")),
+        default=_parse_fuel_policies(_env_value("RCA_FUEL_POLICIES")),
         help=(
             "Comma-separated allowed fuel policies. Examples: "
             "'full/full,like for like' or 'any'."
@@ -262,14 +273,16 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--interval-seconds",
         type=int,
-        default=int(os.getenv("RCA_INTERVAL_SECONDS", str(DEFAULT_POLL_INTERVAL_SECONDS))),
+        default=int(
+            _env_value("RCA_INTERVAL_SECONDS", str(DEFAULT_POLL_INTERVAL_SECONDS))
+        ),
         help="Base polling interval.",
     )
     parser.add_argument(
         "--recovery-delay-seconds",
         type=int,
         default=int(
-            os.getenv(
+            _env_value(
                 "RCA_RECOVERY_DELAY_SECONDS",
                 str(DEFAULT_RECOVERY_DELAY_SECONDS),
             )
@@ -279,48 +292,52 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--jitter-min",
         type=float,
-        default=float(os.getenv("RCA_JITTER_MIN", str(DEFAULT_JITTER_MIN))),
+        default=float(_env_value("RCA_JITTER_MIN", str(DEFAULT_JITTER_MIN))),
         help="Minimum multiplier applied to the interval.",
     )
     parser.add_argument(
         "--jitter-max",
         type=float,
-        default=float(os.getenv("RCA_JITTER_MAX", str(DEFAULT_JITTER_MAX))),
+        default=float(_env_value("RCA_JITTER_MAX", str(DEFAULT_JITTER_MAX))),
         help="Maximum multiplier applied to the interval.",
     )
     parser.add_argument(
         "--timeout-ms",
         type=int,
-        default=int(os.getenv("RCA_TIMEOUT_MS", str(DEFAULT_TIMEOUT_MS))),
+        default=int(_env_value("RCA_TIMEOUT_MS", str(DEFAULT_TIMEOUT_MS))),
         help="Playwright timeout in milliseconds.",
     )
     parser.add_argument(
         "--browser-locale",
-        default=os.getenv("RCA_BROWSER_LOCALE", DEFAULT_BROWSER_LOCALE),
+        default=_env_value("RCA_BROWSER_LOCALE", DEFAULT_BROWSER_LOCALE),
         help="Browser locale used by Playwright.",
     )
     parser.add_argument(
         "--timezone-id",
-        default=os.getenv("RCA_TIMEZONE_ID", DEFAULT_BROWSER_TIMEZONE_ID),
+        default=_env_value("RCA_TIMEZONE_ID", DEFAULT_BROWSER_TIMEZONE_ID),
         help="Browser timezone used by Playwright.",
     )
     parser.add_argument(
         "--geolocation-latitude",
         type=float,
-        default=float(os.getenv("RCA_GEOLOCATION_LATITUDE", str(DEFAULT_BROWSER_LATITUDE))),
+        default=float(
+            _env_value("RCA_GEOLOCATION_LATITUDE", str(DEFAULT_BROWSER_LATITUDE))
+        ),
         help="Latitude exposed to browser geolocation APIs.",
     )
     parser.add_argument(
         "--geolocation-longitude",
         type=float,
-        default=float(os.getenv("RCA_GEOLOCATION_LONGITUDE", str(DEFAULT_BROWSER_LONGITUDE))),
+        default=float(
+            _env_value("RCA_GEOLOCATION_LONGITUDE", str(DEFAULT_BROWSER_LONGITUDE))
+        ),
         help="Longitude exposed to browser geolocation APIs.",
     )
     parser.add_argument(
         "--geolocation-accuracy",
         type=int,
         default=int(
-            os.getenv(
+            _env_value(
                 "RCA_GEOLOCATION_ACCURACY",
                 str(DEFAULT_BROWSER_GEOLOCATION_ACCURACY_METERS),
             )
@@ -329,28 +346,36 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--accept-language",
-        default=os.getenv("RCA_ACCEPT_LANGUAGE", DEFAULT_ACCEPT_LANGUAGE),
+        default=_env_value("RCA_ACCEPT_LANGUAGE", DEFAULT_ACCEPT_LANGUAGE),
         help="Accept-Language header sent by Playwright.",
     )
     parser.add_argument(
         "--proxy-server",
-        default=os.getenv("RCA_PROXY_SERVER"),
+        default=_env_value("RCA_PROXY_SERVER") or None,
         help="Optional Playwright proxy server, for example http://host:port.",
     )
     parser.add_argument(
         "--proxy-username",
-        default=os.getenv("RCA_PROXY_USERNAME"),
+        default=_env_value("RCA_PROXY_USERNAME") or None,
         help="Optional Playwright proxy username.",
     )
     parser.add_argument(
         "--proxy-password",
-        default=os.getenv("RCA_PROXY_PASSWORD"),
+        default=_env_value("RCA_PROXY_PASSWORD") or None,
         help="Optional Playwright proxy password.",
+    )
+    parser.add_argument(
+        "--snapshot-file",
+        type=Path,
+        default=Path(_env_value("RCA_SNAPSHOT_FILE"))
+        if _env_value("RCA_SNAPSHOT_FILE")
+        else None,
+        help="Optional file used to persist the last emailed alert snapshot.",
     )
     parser.add_argument(
         "--once",
         action="store_true",
-        default=_parse_bool(os.getenv("RCA_RUN_ONCE"), False),
+        default=_parse_bool(_env_value("RCA_RUN_ONCE"), False),
         help="Run a single polling cycle and exit.",
     )
     return parser
@@ -414,11 +439,11 @@ def load_config(argv: list[str] | None = None) -> AppConfig:
             proxy_password=proxy_password,
         ),
         email=EmailSettings(
-            recipient=args.recipient,
-            sender=args.sender,
-            smtp_host=args.smtp_host,
+            recipient=args.recipient.strip(),
+            sender=args.sender.strip(),
+            smtp_host=args.smtp_host.strip(),
             smtp_port=args.smtp_port,
-            smtp_username=args.smtp_username,
+            smtp_username=args.smtp_username.strip(),
             smtp_password=args.smtp_password,
         ),
         monitor=MonitorSettings(
@@ -427,5 +452,6 @@ def load_config(argv: list[str] | None = None) -> AppConfig:
             jitter_min=args.jitter_min,
             jitter_max=args.jitter_max,
             run_once=args.once,
+            snapshot_file=args.snapshot_file,
         ),
     )

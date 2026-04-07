@@ -85,6 +85,7 @@ poetry run python -m rental_car_alert 115
 - `RCA_HEADLESS`: `true` or `false`
 - `RCA_INSURANCE_LIMIT`: Compare against insurance-inclusive price
 - `RCA_ONLY_CANCELABLE`: Restrict to cancelable offers
+- `RCA_SNAPSHOT_FILE`: Optional file for suppressing duplicate emails across runs
 - `RCA_BROWSER_LOCALE`: Browser locale, defaults to `es-ES`
 - `RCA_TIMEZONE_ID`: Browser timezone, defaults to `Europe/Madrid`
 - `RCA_PROXY_SERVER`: Optional proxy URL if the site needs to see a Spanish IP
@@ -93,14 +94,14 @@ The full setup and configuration reference is in [docs/SETUP.md](/home/adrian_al
 
 ## GitHub Actions
 
-The repository includes [rental-car-alert.yml](/home/adrian_alvarez/Projects/Rental-Car-Alert/.github/workflows/rental-car-alert.yml), which runs headlessly on GitHub Actions every 6 hours and can also be started manually.
+The repository includes [heraklion_alert.yml](/home/adrian_alvarez/Projects/Rental-Car-Alert/.github/workflows/heraklion_alert.yml), which runs headlessly on GitHub Actions on a schedule and can also be started manually.
 
 It is preconfigured for:
 
 - pickup location: `Heraclion Airport`
-- pickup date: `2026-06-21`
-- return date: `2026-07-08`
-- pickup/return time: `12 30`
+- pickup date: `2026-06-23`
+- return date: `2026-07-07`
+- pickup/return time: `18 00`
 
 To make it work, add these repository secrets:
 
@@ -110,3 +111,5 @@ To make it work, add these repository secrets:
 - `RCA_SMTP_PORT`
 - `RCA_SMTP_USERNAME`
 - `RCA_SMTP_PASSWORD`
+
+The workflow restores and saves `RCA_SNAPSHOT_FILE` through the GitHub Actions cache so unchanged results do not send the same alert email every scheduled run.
