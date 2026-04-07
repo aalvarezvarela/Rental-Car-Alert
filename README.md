@@ -65,7 +65,7 @@ poetry run python -m rental_car_alert 115
 3. Sets pickup and return dates, then submits the search.
 4. Applies filters such as `Full/Full`.
 5. Parses the result cards into structured `CarOffer` objects.
-6. Opens each qualifying detail page to read the insurance-inclusive price.
+6. Opens each qualifying detail page to read the insurance-inclusive price. In insurance-limit mode, it first adds a 5 EUR/day insurance estimate and skips detail scraping when the estimated total cannot beat the limit.
 7. Sends an email if a new result is below the configured threshold.
 8. Waits for the next polling interval and repeats.
 

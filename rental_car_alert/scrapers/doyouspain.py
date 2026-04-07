@@ -17,6 +17,7 @@ DEBUG_DIR = Path("debug_artifacts")
 LOG_PREVIEW_LIMIT = 4_000
 MIN_HUMAN_PAUSE_SECONDS = 0.6
 MAX_HUMAN_PAUSE_SECONDS = 2.0
+ESTIMATED_INSURANCE_PRICE_PER_DAY = 5.0
 
 
 class DoyouSpainScraper:
@@ -451,15 +452,18 @@ class DoyouSpainScraper:
         offers: list[CarOffer],
         timeout_error: type[Exception],
     ) -> None:
+        estimated_insurance_price = self._estimated_insurance_price(search_settings)
         for offer in offers:
             LOGGER.debug(
                 "Offer %s base price: %.2f €",
                 offer.model,
                 offer.price_without_insurance,
             )
-            if not offer.price_without_insurance < search_settings.limit:
-                continue
-            if not offer.is_fuel_policy_allowed(search_settings.fuel_policies):
+            if not self._should_fetch_insurance_price(
+                offer,
+                search_settings,
+                estimated_insurance_price,
+            ):
                 continue
             LOGGER.info(
                 "Opening detail popup for %s at %.2f €.",
@@ -515,6 +519,42 @@ class DoyouSpainScraper:
                     "Insurance price could not be determined for %s.",
                     offer.model,
                 )
+
+    def _should_fetch_insurance_price(
+        self,
+        offer: CarOffer,
+        search_settings: SearchSettings,
+        estimated_insurance_price: float,
+    ) -> bool:
+        if not offer.price_without_insurance < search_settings.limit:
+            return False
+        if not offer.is_fuel_policy_allowed(search_settings.fuel_policies):
+            return False
+        if not search_settings.insurance_limit:
+            return True
+
+        estimated_total_price = (
+            offer.price_without_insurance + estimated_insurance_price
+        )
+        if estimated_total_price < search_settings.limit:
+            return True
+
+        LOGGER.info(
+            "Skipping detail popup for %s: %.2f € base price + %.2f € estimated "
+            "insurance is not below the %.2f € limit.",
+            offer.model,
+            offer.price_without_insurance,
+            estimated_insurance_price,
+            search_settings.limit,
+        )
+        return False
+
+    def _estimated_insurance_price(self, search_settings: SearchSettings) -> float:
+        rental_days = max(
+            1,
+            (search_settings.return_date - search_settings.pickup_date).days,
+        )
+        return rental_days * ESTIMATED_INSURANCE_PRICE_PER_DAY
 
     def _human_pause(self, page) -> None:
         pause_seconds = random.uniform(

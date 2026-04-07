@@ -82,6 +82,8 @@ For each offer whose base price is already below the threshold:
 - the parser reads the insurance table or JavaScript fallback values
 - the `insurance_price` is attached to the `CarOffer`
 
+When `insurance_limit` is enabled, the scraper first adds an estimated 5 EUR/day insurance cost to the base price. If that estimated total is not below the configured limit, the detail popup is skipped to avoid unnecessary scraping.
+
 This keeps the scraper aligned with the live site flow instead of guessing at shared form actions or stale direct URLs.
 
 ### 6. Alert Filtering
