@@ -118,6 +118,15 @@ Options:
 - `--jitter-min`: Minimum interval multiplier
 - `--jitter-max`: Maximum interval multiplier
 - `--timeout-ms`: Playwright timeout in milliseconds
+- `--browser-locale`: Browser locale used by Playwright, defaults to `es-ES`
+- `--timezone-id`: Browser timezone used by Playwright, defaults to `Europe/Madrid`
+- `--geolocation-latitude`: Latitude exposed to browser geolocation APIs
+- `--geolocation-longitude`: Longitude exposed to browser geolocation APIs
+- `--geolocation-accuracy`: Accuracy in meters exposed to browser geolocation APIs
+- `--accept-language`: `Accept-Language` header sent by Playwright
+- `--proxy-server`: Optional Playwright proxy server, for example `http://host:port`
+- `--proxy-username`: Optional Playwright proxy username
+- `--proxy-password`: Optional Playwright proxy password
 - `--once`: Run exactly one cycle
 
 ## Environment Variables
@@ -144,7 +153,22 @@ Every CLI option has an environment-based default:
 - `RCA_JITTER_MIN`
 - `RCA_JITTER_MAX`
 - `RCA_TIMEOUT_MS`
+- `RCA_BROWSER_LOCALE`
+- `RCA_TIMEZONE_ID`
+- `RCA_GEOLOCATION_LATITUDE`
+- `RCA_GEOLOCATION_LONGITUDE`
+- `RCA_GEOLOCATION_ACCURACY`
+- `RCA_ACCEPT_LANGUAGE`
+- `RCA_PROXY_SERVER`
+- `RCA_PROXY_USERNAME`
+- `RCA_PROXY_PASSWORD`
 - `RCA_RUN_ONCE`
+
+## Browser Location
+
+By default, Playwright now mimics a Spanish browser context with locale `es-ES`, timezone `Europe/Madrid`, Madrid geolocation coordinates, geolocation permission, and an `Accept-Language` header.
+
+This does not change the public IP address. If DoYouSpain or another provider decides location from IP geolocation, set `RCA_PROXY_SERVER` to a Spanish proxy or run the monitor through a Spanish VPN/network.
 
 ## Gmail Example
 

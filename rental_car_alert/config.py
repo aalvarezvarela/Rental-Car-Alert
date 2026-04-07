@@ -25,6 +25,12 @@ DEFAULT_USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/124.0.0.0 Safari/537.36"
 )
+DEFAULT_BROWSER_LOCALE = "es-ES"
+DEFAULT_BROWSER_TIMEZONE_ID = "Europe/Madrid"
+DEFAULT_BROWSER_LATITUDE = 40.416775
+DEFAULT_BROWSER_LONGITUDE = -3.703790
+DEFAULT_BROWSER_GEOLOCATION_ACCURACY_METERS = 50
+DEFAULT_ACCEPT_LANGUAGE = "es-ES,es;q=0.9,en;q=0.8"
 
 
 def _load_dotenv() -> None:
@@ -117,6 +123,15 @@ class BrowserSettings:
     user_agent: str
     viewport_width: int = 1920
     viewport_height: int = 1080
+    locale: str = DEFAULT_BROWSER_LOCALE
+    timezone_id: str = DEFAULT_BROWSER_TIMEZONE_ID
+    geolocation_latitude: float = DEFAULT_BROWSER_LATITUDE
+    geolocation_longitude: float = DEFAULT_BROWSER_LONGITUDE
+    geolocation_accuracy: int = DEFAULT_BROWSER_GEOLOCATION_ACCURACY_METERS
+    accept_language: str = DEFAULT_ACCEPT_LANGUAGE
+    proxy_server: str | None = None
+    proxy_username: str | None = None
+    proxy_password: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -280,6 +295,59 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help="Playwright timeout in milliseconds.",
     )
     parser.add_argument(
+        "--browser-locale",
+        default=os.getenv("RCA_BROWSER_LOCALE", DEFAULT_BROWSER_LOCALE),
+        help="Browser locale used by Playwright.",
+    )
+    parser.add_argument(
+        "--timezone-id",
+        default=os.getenv("RCA_TIMEZONE_ID", DEFAULT_BROWSER_TIMEZONE_ID),
+        help="Browser timezone used by Playwright.",
+    )
+    parser.add_argument(
+        "--geolocation-latitude",
+        type=float,
+        default=float(os.getenv("RCA_GEOLOCATION_LATITUDE", str(DEFAULT_BROWSER_LATITUDE))),
+        help="Latitude exposed to browser geolocation APIs.",
+    )
+    parser.add_argument(
+        "--geolocation-longitude",
+        type=float,
+        default=float(os.getenv("RCA_GEOLOCATION_LONGITUDE", str(DEFAULT_BROWSER_LONGITUDE))),
+        help="Longitude exposed to browser geolocation APIs.",
+    )
+    parser.add_argument(
+        "--geolocation-accuracy",
+        type=int,
+        default=int(
+            os.getenv(
+                "RCA_GEOLOCATION_ACCURACY",
+                str(DEFAULT_BROWSER_GEOLOCATION_ACCURACY_METERS),
+            )
+        ),
+        help="Accuracy in meters exposed to browser geolocation APIs.",
+    )
+    parser.add_argument(
+        "--accept-language",
+        default=os.getenv("RCA_ACCEPT_LANGUAGE", DEFAULT_ACCEPT_LANGUAGE),
+        help="Accept-Language header sent by Playwright.",
+    )
+    parser.add_argument(
+        "--proxy-server",
+        default=os.getenv("RCA_PROXY_SERVER"),
+        help="Optional Playwright proxy server, for example http://host:port.",
+    )
+    parser.add_argument(
+        "--proxy-username",
+        default=os.getenv("RCA_PROXY_USERNAME"),
+        help="Optional Playwright proxy username.",
+    )
+    parser.add_argument(
+        "--proxy-password",
+        default=os.getenv("RCA_PROXY_PASSWORD"),
+        help="Optional Playwright proxy password.",
+    )
+    parser.add_argument(
         "--once",
         action="store_true",
         default=_parse_bool(os.getenv("RCA_RUN_ONCE"), False),
@@ -302,6 +370,23 @@ def load_config(argv: list[str] | None = None) -> AppConfig:
         raise ValueError("return-date must be after pickup-date.")
     if args.jitter_min > args.jitter_max:
         raise ValueError("jitter-min cannot be greater than jitter-max.")
+    if not args.browser_locale.strip():
+        raise ValueError("browser-locale cannot be empty.")
+    if not args.timezone_id.strip():
+        raise ValueError("timezone-id cannot be empty.")
+    if not args.accept_language.strip():
+        raise ValueError("accept-language cannot be empty.")
+    if not -90 <= args.geolocation_latitude <= 90:
+        raise ValueError("geolocation-latitude must be between -90 and 90.")
+    if not -180 <= args.geolocation_longitude <= 180:
+        raise ValueError("geolocation-longitude must be between -180 and 180.")
+    if args.geolocation_accuracy < 0:
+        raise ValueError("geolocation-accuracy cannot be negative.")
+    proxy_server = args.proxy_server.strip() if args.proxy_server else None
+    proxy_username = args.proxy_username.strip() if args.proxy_username else None
+    proxy_password = args.proxy_password.strip() if args.proxy_password else None
+    if (proxy_username or proxy_password) and not proxy_server:
+        raise ValueError("proxy-username and proxy-password require proxy-server.")
 
     return AppConfig(
         search=SearchSettings(
@@ -318,6 +403,15 @@ def load_config(argv: list[str] | None = None) -> AppConfig:
             headless=args.headless,
             timeout_ms=args.timeout_ms,
             user_agent=DEFAULT_USER_AGENT,
+            locale=args.browser_locale.strip(),
+            timezone_id=args.timezone_id.strip(),
+            geolocation_latitude=args.geolocation_latitude,
+            geolocation_longitude=args.geolocation_longitude,
+            geolocation_accuracy=args.geolocation_accuracy,
+            accept_language=args.accept_language.strip(),
+            proxy_server=proxy_server,
+            proxy_username=proxy_username,
+            proxy_password=proxy_password,
         ),
         email=EmailSettings(
             recipient=args.recipient,

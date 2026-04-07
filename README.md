@@ -85,6 +85,9 @@ poetry run python -m rental_car_alert 115
 - `RCA_HEADLESS`: `true` or `false`
 - `RCA_INSURANCE_LIMIT`: Compare against insurance-inclusive price
 - `RCA_ONLY_CANCELABLE`: Restrict to cancelable offers
+- `RCA_BROWSER_LOCALE`: Browser locale, defaults to `es-ES`
+- `RCA_TIMEZONE_ID`: Browser timezone, defaults to `Europe/Madrid`
+- `RCA_PROXY_SERVER`: Optional proxy URL if the site needs to see a Spanish IP
 
 The full setup and configuration reference is in [docs/SETUP.md](/home/adrian_alvarez/Projects/Rental-Car-Alert/docs/SETUP.md).
 

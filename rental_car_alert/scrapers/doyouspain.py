@@ -36,15 +36,31 @@ class DoyouSpainScraper:
         offers: list[CarOffer] = []
         results_url = ""
         with sync_playwright() as playwright:
-            browser = playwright.chromium.launch(
-                headless=self._browser_settings.headless,
-                args=["--disable-dev-shm-usage", "--no-sandbox"],
-            )
+            launch_options = {
+                "headless": self._browser_settings.headless,
+                "args": ["--disable-dev-shm-usage", "--no-sandbox"],
+            }
+            proxy_settings = self._playwright_proxy_settings()
+            if proxy_settings is not None:
+                launch_options["proxy"] = proxy_settings
+
+            browser = playwright.chromium.launch(**launch_options)
             context = browser.new_context(
                 user_agent=self._browser_settings.user_agent,
                 viewport={
                     "width": self._browser_settings.viewport_width,
                     "height": self._browser_settings.viewport_height,
+                },
+                locale=self._browser_settings.locale,
+                timezone_id=self._browser_settings.timezone_id,
+                geolocation={
+                    "latitude": self._browser_settings.geolocation_latitude,
+                    "longitude": self._browser_settings.geolocation_longitude,
+                    "accuracy": self._browser_settings.geolocation_accuracy,
+                },
+                permissions=["geolocation"],
+                extra_http_headers={
+                    "Accept-Language": self._browser_settings.accept_language,
                 },
                 ignore_https_errors=True,
             )
@@ -76,6 +92,17 @@ class DoyouSpainScraper:
                 browser.close()
 
         return SearchRun(offers=offers, results_url=results_url)
+
+    def _playwright_proxy_settings(self) -> dict[str, str] | None:
+        if self._browser_settings.proxy_server is None:
+            return None
+
+        proxy_settings = {"server": self._browser_settings.proxy_server}
+        if self._browser_settings.proxy_username is not None:
+            proxy_settings["username"] = self._browser_settings.proxy_username
+        if self._browser_settings.proxy_password is not None:
+            proxy_settings["password"] = self._browser_settings.proxy_password
+        return proxy_settings
 
     def _open_homepage(self, page) -> None:
         LOGGER.info("Opening DoYouSpain homepage.")
