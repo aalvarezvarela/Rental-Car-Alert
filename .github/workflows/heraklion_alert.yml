@@ -21,7 +21,7 @@ jobs:
       RCA_PICKUP_DATE: "2026-06-23"
       RCA_RETURN_DATE: "2026-07-07"
       RCA_PICKUP_TIME: "18 00"
-      RCA_PRICE_LIMIT: "300"
+      RCA_PRICE_LIMIT: "240"
       RCA_HEADLESS: "true"
       RCA_INSURANCE_LIMIT: "true"
       RCA_ONLY_CANCELABLE: "false"
