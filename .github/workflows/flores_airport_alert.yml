@@ -25,7 +25,7 @@ jobs:
       RCA_HEADLESS: "true"
       RCA_INSURANCE_LIMIT: "false"
       RCA_ONLY_CANCELABLE: "false"
-      RCA_FUEL_POLICIES: "full/full,igual/igual,like for like, Igual - Igual"
+      RCA_FUEL_POLICIES: "any"
       RCA_RUN_ONCE: "true"
       RCA_SNAPSHOT_FILE: ".cache/flores_airport_alert_snapshot.json"
       RCA_EMAIL_TO: ${{ secrets.RCA_EMAIL_TO }}

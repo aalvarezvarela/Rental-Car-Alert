@@ -48,6 +48,14 @@ With the included `.env`, you can also just run:
 poetry run python -m rental_car_alert 115 --once
 ```
 
+Run locally using a workflow job's parameters:
+
+```bash
+poetry run python scripts/run_workflow_debug.py .github/workflows/flores_airport_alert.yml --headful --no-email --show-env
+```
+
+The debug runner resolves `${{ secrets.NAME }}` from your shell environment or `.env`.
+
 Run continuously:
 
 ```bash

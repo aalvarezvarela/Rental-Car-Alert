@@ -7,6 +7,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from rental_car_alert.config import AppConfig
+from rental_car_alert.models import CarOffer
 from rental_car_alert.notifications import build_email_body, serialize_alert_snapshot
 from rental_car_alert.scrapers.doyouspain import DoyouSpainScraper
 from rental_car_alert.services.email import EmailClient
@@ -77,6 +78,7 @@ class RentalCarMonitor:
                 "No cars found cheaper than %.2f €.",
                 self._config.search.limit,
             )
+            self._log_rejected_offers(offers)
             self._set_last_snapshot("")
             return
 
@@ -116,6 +118,25 @@ class RentalCarMonitor:
             f"{self._config.search.pickup_date.isoformat()} to "
             f"{self._config.search.return_date.isoformat()})"
         )
+
+    def _log_rejected_offers(self, offers: list[CarOffer]) -> None:
+        for offer in offers:
+            alert_price = offer.alert_price(self._config.search.insurance_limit)
+            price_label = "unknown" if alert_price is None else f"{alert_price:.2f} EUR"
+            reasons = []
+            if alert_price is None:
+                reasons.append("missing comparison price")
+            elif alert_price >= self._config.search.limit:
+                reasons.append("price is not below limit")
+            if not offer.is_fuel_policy_allowed(self._config.search.fuel_policies):
+                reasons.append(f"fuel policy {offer.fuel_policy!r} is not allowed")
+            LOGGER.info(
+                "Rejected offer #%s %s: %s (%s).",
+                offer.position + 1,
+                offer.model,
+                price_label,
+                ", ".join(reasons) or "unknown reason",
+            )
 
     def _load_last_snapshot(self) -> str:
         snapshot_file = self._config.monitor.snapshot_file
