@@ -1,0 +1,84 @@
+name: Flores Airport Rental Car Alert
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "36 7-23 * * *"
+    - cron: "36 0,2,4,6 * * *"
+
+concurrency:
+  group: flores-airport-rental-car-alert
+  cancel-in-progress: false
+
+jobs:
+  flores_airport_monitor:
+    name: Flores Airport Monitor - Jul 30 to Aug 4 Under 500
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TZ: "Europe/Madrid"
+      RCA_PICKUP_LOCATION: "Flores aeropuerto"
+      RCA_PICKUP_DATE: "2026-07-30"
+      RCA_RETURN_DATE: "2026-08-04"
+      RCA_PICKUP_TIME: "12 00"
+      RCA_PRICE_LIMIT: "500"
+      RCA_HEADLESS: "true"
+      RCA_INSURANCE_LIMIT: "false"
+      RCA_ONLY_CANCELABLE: "false"
+      RCA_FUEL_POLICIES: "full/full,igual/igual,like for like, Igual - Igual"
+      RCA_RUN_ONCE: "true"
+      RCA_SNAPSHOT_FILE: ".cache/flores_airport_alert_snapshot.json"
+      RCA_EMAIL_TO: ${{ secrets.RCA_EMAIL_TO }}
+      RCA_EMAIL_FROM: ${{ secrets.RCA_EMAIL_FROM }}
+      RCA_SMTP_HOST: ${{ secrets.RCA_SMTP_HOST }}
+      RCA_SMTP_PORT: ${{ secrets.RCA_SMTP_PORT }}
+      RCA_SMTP_USERNAME: ${{ secrets.RCA_SMTP_USERNAME }}
+      RCA_SMTP_PASSWORD: ${{ secrets.RCA_SMTP_PASSWORD }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Restore alert snapshot
+        uses: actions/cache/restore@v4
+        with:
+          path: .cache/flores_airport_alert_snapshot.json
+          key: flores-airport-alert-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            flores-airport-alert-snapshot-
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Install Playwright Chromium
+        run: poetry run playwright install --with-deps chromium
+
+      - name: Run rental car monitor
+        run: poetry run python -m rental_car_alert
+
+      - name: Ensure alert snapshot path exists
+        if: always()
+        run: mkdir -p "$(dirname "$RCA_SNAPSHOT_FILE")" && touch "$RCA_SNAPSHOT_FILE"
+
+      - name: Save alert snapshot
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/flores_airport_alert_snapshot.json
+          key: flores-airport-alert-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Upload diagnostics artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: flores-airport-rental-car-alert-diagnostics
+          path: debug_artifacts/
+          if-no-files-found: ignore
