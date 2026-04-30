@@ -3,8 +3,8 @@ name: Flores Airport Rental Car Alert
 on:
   workflow_dispatch:
   schedule:
-    - cron: "36 7-23 * * *"
-    - cron: "36 0,2,4,6 * * *"
+    - cron: "14 7-23 * * *"
+    - cron: "14 0,2,4,6 * * *"
 
 concurrency:
   group: flores-airport-rental-car-alert
@@ -28,7 +28,7 @@ jobs:
       RCA_FUEL_POLICIES: "any"
       RCA_RUN_ONCE: "true"
       RCA_SNAPSHOT_FILE: ".cache/flores_airport_alert_snapshot.json"
-      RCA_EMAIL_TO: ${{ secrets.RCA_EMAIL_TO }}
+      RCA_EMAIL_TO: ${{ secrets.RCA_EMAIL_A }}
       RCA_EMAIL_FROM: ${{ secrets.RCA_EMAIL_FROM }}
       RCA_SMTP_HOST: ${{ secrets.RCA_SMTP_HOST }}
       RCA_SMTP_PORT: ${{ secrets.RCA_SMTP_PORT }}
