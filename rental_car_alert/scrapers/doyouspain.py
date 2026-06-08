@@ -77,7 +77,7 @@ class DoyouSpainScraper:
                 )
                 self._apply_filters(
                     page=page,
-                    only_cancelable=search_settings.only_cancelable,
+                    search_settings=search_settings,
                     timeout_error=PlaywrightTimeoutError,
                 )
                 offers = self._parse_results(page)
@@ -359,14 +359,96 @@ class DoyouSpainScraper:
             """
         )
 
-    def _apply_filters(self, page, only_cancelable: bool, timeout_error: type[Exception]) -> None:
+    def _apply_filters(
+        self,
+        page,
+        search_settings: SearchSettings,
+        timeout_error: type[Exception],
+    ) -> None:
         self._wait_for_results(page, timeout_error)
 
-        if only_cancelable:
-            if self._click_optional(page, "#idCancel1", "cancelation filter", timeout_error):
+        if search_settings.apply_site_filters:
+            self._click_available_result_filter(
+                page=page,
+                selectors=(
+                    "#idFuelFf label",
+                    "#idFuelFf",
+                    "li.fuel-option:has-text('Lleno/Lleno')",
+                    "button:has-text('Lleno/Lleno')",
+                    "#idFuelFullFull",
+                    "#idFuel1",
+                ),
+                description="full/full fuel filter",
+                timeout_error=timeout_error,
+            )
+
+        if search_settings.only_cancelable or search_settings.apply_site_filters:
+            self._click_available_result_filter(
+                page=page,
+                selectors=(
+                    "#idCancel1",
+                    "label:has-text('Cancelación gratis') input",
+                    "li:has-text('Cancelación gratis') input",
+                    "input[type='checkbox'][name*='Cancel']",
+                ),
+                description="free cancellation filter",
+                timeout_error=timeout_error,
+            )
+
+        self._wait_for_results(page, timeout_error)
+
+    def _click_available_result_filter(
+        self,
+        page,
+        selectors: tuple[str, ...],
+        description: str,
+        timeout_error: type[Exception],
+    ) -> bool:
+        filter_timeout_ms = min(2_000, self._browser_settings.timeout_ms)
+        for selector in selectors:
+            locator = page.locator(selector).first
+            try:
+                if locator.count() == 0:
+                    continue
+                locator.wait_for(state="visible", timeout=filter_timeout_ms)
+                if self._is_filter_selected(locator):
+                    LOGGER.info("%s is already selected.", description)
+                    return True
+                self._human_pause(page)
+                locator.click(timeout=filter_timeout_ms)
+                LOGGER.info("Clicked %s.", description)
                 page.wait_for_timeout(2_000)
+                return True
+            except timeout_error:
+                LOGGER.debug(
+                    "Skipping %s candidate; selector not available: %s",
+                    description,
+                    selector,
+                )
+        LOGGER.info("Skipping %s; no available selector matched.", description)
+        return False
 
-        self._wait_for_results(page, timeout_error)
+    def _is_filter_selected(self, locator) -> bool:
+        try:
+            return bool(
+                locator.evaluate(
+                    """
+                    (element) => {
+                        if (element instanceof HTMLInputElement) {
+                            return element.checked;
+                        }
+                        return (
+                            element.classList.contains('active') ||
+                            element.classList.contains('selected') ||
+                            element.getAttribute('aria-pressed') === 'true' ||
+                            element.getAttribute('aria-selected') === 'true'
+                        );
+                    }
+                    """
+                )
+            )
+        except Exception:
+            return False
 
     def _wait_for_results(self, page, timeout_error: type[Exception]) -> None:
         try:
@@ -466,7 +548,8 @@ class DoyouSpainScraper:
             ):
                 continue
             LOGGER.info(
-                "Opening detail popup for %s at %.2f €.",
+                "Opening detail popup for %s %s at %.2f €.",
+                offer.company,
                 offer.model,
                 offer.price_without_insurance,
             )

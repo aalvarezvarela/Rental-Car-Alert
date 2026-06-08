@@ -120,6 +120,7 @@ class SearchSettings:
     pickup_time: time | None
     insurance_limit: bool
     only_cancelable: bool
+    apply_site_filters: bool
     fuel_policies: frozenset[str]
 
 
@@ -260,6 +261,15 @@ def build_argument_parser() -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=_parse_bool(_env_value("RCA_ONLY_CANCELABLE"), False),
         help="Only inspect offers with free cancellation.",
+    )
+    parser.add_argument(
+        "--apply-site-filters",
+        action=argparse.BooleanOptionalAction,
+        default=_parse_bool(_env_value("RCA_APPLY_SITE_FILTERS"), False),
+        help=(
+            "Try to apply available DoYouSpain result filters for free "
+            "cancellation and full/full fuel before parsing offers."
+        ),
     )
     parser.add_argument(
         "--fuel-policies",
@@ -422,6 +432,7 @@ def load_config(argv: list[str] | None = None) -> AppConfig:
             pickup_time=args.pickup_time,
             insurance_limit=args.insurance_limit,
             only_cancelable=args.only_cancelable,
+            apply_site_filters=args.apply_site_filters,
             fuel_policies=args.fuel_policies,
         ),
         browser=BrowserSettings(
