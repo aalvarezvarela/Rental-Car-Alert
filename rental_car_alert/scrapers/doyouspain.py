@@ -81,6 +81,7 @@ class DoyouSpainScraper:
                     timeout_error=PlaywrightTimeoutError,
                 )
                 offers = self._parse_results(page)
+                offers = self._filter_offers_by_company(offers, search_settings)
                 self._populate_insurance_prices(
                     page=page,
                     search_settings=search_settings,
@@ -613,6 +614,8 @@ class DoyouSpainScraper:
             return False
         if not offer.is_fuel_policy_allowed(search_settings.fuel_policies):
             return False
+        if not offer.is_company_allowed(search_settings.companies):
+            return False
         if not search_settings.insurance_limit:
             return True
 
@@ -631,6 +634,27 @@ class DoyouSpainScraper:
             search_settings.limit,
         )
         return False
+
+    def _filter_offers_by_company(
+        self,
+        offers: list[CarOffer],
+        search_settings: SearchSettings,
+    ) -> list[CarOffer]:
+        if not search_settings.companies:
+            return offers
+
+        filtered_offers = [
+            offer
+            for offer in offers
+            if offer.is_company_allowed(search_settings.companies)
+        ]
+        LOGGER.info(
+            "Filtered offers by company: %s of %s matched %s.",
+            len(filtered_offers),
+            len(offers),
+            ", ".join(sorted(search_settings.companies)),
+        )
+        return filtered_offers
 
     def _estimated_insurance_price(self, search_settings: SearchSettings) -> float:
         rental_days = max(

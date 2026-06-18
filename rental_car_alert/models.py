@@ -19,6 +19,10 @@ def normalize_fuel_policy(raw_value: str) -> str:
     return " ".join(raw_value.lower().split())
 
 
+def normalize_company_name(raw_value: str) -> str:
+    return " ".join(raw_value.lower().split())
+
+
 @dataclass(slots=True)
 class CarOffer:
     position: int
@@ -38,6 +42,16 @@ class CarOffer:
         normalized_policy = normalize_fuel_policy(self.fuel_policy)
         return normalized_policy in allowed_fuel_policies
 
+    def is_company_allowed(self, allowed_companies: frozenset[str]) -> bool:
+        if not allowed_companies:
+            return True
+        normalized_company = normalize_company_name(self.company)
+        return any(
+            allowed_company == normalized_company
+            or allowed_company in normalized_company
+            for allowed_company in allowed_companies
+        )
+
     def alert_price(self, insurance_limit: bool) -> float | None:
         if insurance_limit:
             return self.insurance_price
@@ -48,12 +62,14 @@ class CarOffer:
         limit: float,
         insurance_limit: bool,
         allowed_fuel_policies: frozenset[str],
+        allowed_companies: frozenset[str],
     ) -> bool:
         alert_price = self.alert_price(insurance_limit)
         return (
             alert_price is not None
             and alert_price < limit
             and self.is_fuel_policy_allowed(allowed_fuel_policies)
+            and self.is_company_allowed(allowed_companies)
         )
 
     def as_legacy_list(self) -> list[object]:

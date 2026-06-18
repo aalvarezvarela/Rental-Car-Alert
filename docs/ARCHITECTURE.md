@@ -84,6 +84,8 @@ For each offer whose base price is already below the threshold:
 
 When `insurance_limit` is enabled, the scraper first adds an estimated 5 EUR/day insurance cost to the base price. If that estimated total is not below the configured limit, the detail popup is skipped to avoid unnecessary scraping.
 
+When a company allow list is configured, offers from other companies are filtered out before detail popups are opened.
+
 This keeps the scraper aligned with the live site flow instead of guessing at shared form actions or stale direct URLs.
 
 ### 6. Alert Filtering
@@ -95,6 +97,7 @@ The key rules are:
 - the relevant comparison price must be below the configured limit
 - comparison can be base price or insurance-inclusive price depending on `insurance_limit`
 - disallowed fuel policies are rejected
+- when configured, companies outside the allow list are rejected
 
 ### 7. Deduplication
 

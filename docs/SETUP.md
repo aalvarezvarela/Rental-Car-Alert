@@ -113,6 +113,7 @@ Options:
 - `--headless` or `--no-headless`: Run browser headless or visible
 - `--insurance-limit` or `--no-insurance-limit`: Compare alerts against insurance-inclusive or base price
 - `--only-cancelable` or `--no-only-cancelable`: Restrict to cancelable offers
+- `--companies`: Comma-separated rental companies to include, for example `Centauro`
 - `--interval-seconds`: Base monitor interval
 - `--recovery-delay-seconds`: Delay after a failed cycle
 - `--jitter-min`: Minimum interval multiplier
@@ -148,6 +149,7 @@ Every CLI option has an environment-based default:
 - `RCA_HEADLESS`
 - `RCA_INSURANCE_LIMIT`
 - `RCA_ONLY_CANCELABLE`
+- `RCA_COMPANIES`
 - `RCA_INTERVAL_SECONDS`
 - `RCA_RECOVERY_DELAY_SECONDS`
 - `RCA_JITTER_MIN`
@@ -257,7 +259,8 @@ The workflow is preconfigured with these search values:
 - `RCA_PICKUP_DATE=2026-06-23`
 - `RCA_RETURN_DATE=2026-07-07`
 - `RCA_PICKUP_TIME=18 00`
-- `RCA_PRICE_LIMIT=300`
+- `RCA_PRICE_LIMIT=125`
+- `RCA_COMPANIES=Centauro` and `RCA_PRICE_LIMIT=215` in the Centauro-only job
 - `RCA_HEADLESS=true`
 - `RCA_RUN_ONCE=true`
 - `RCA_SNAPSHOT_FILE=.cache/heraklion_alert_snapshot.json`

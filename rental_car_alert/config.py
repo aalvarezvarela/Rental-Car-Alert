@@ -8,6 +8,7 @@ from pathlib import Path
 
 from rental_car_alert.models import (
     DEFAULT_ALLOWED_FUEL_POLICIES,
+    normalize_company_name,
     normalize_fuel_policy,
 )
 
@@ -111,6 +112,21 @@ def _parse_fuel_policies(raw_value: str | None) -> frozenset[str]:
     return frozenset(policies)
 
 
+def _parse_companies(raw_value: str | None) -> frozenset[str]:
+    if raw_value is None or not raw_value.strip():
+        return frozenset()
+
+    normalized = raw_value.strip().lower()
+    if normalized in {"any", "all", "*"}:
+        return frozenset()
+
+    return frozenset(
+        normalize_company_name(company)
+        for company in raw_value.split(",")
+        if company.strip()
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class SearchSettings:
     pickup_location: str
@@ -122,6 +138,7 @@ class SearchSettings:
     only_cancelable: bool
     apply_site_filters: bool
     fuel_policies: frozenset[str]
+    companies: frozenset[str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -281,6 +298,15 @@ def build_argument_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--companies",
+        type=_parse_companies,
+        default=_parse_companies(_env_value("RCA_COMPANIES")),
+        help=(
+            "Comma-separated rental companies to include. Examples: "
+            "'Centauro' or 'Centauro,Record Go'. Use 'any' to include all."
+        ),
+    )
+    parser.add_argument(
         "--interval-seconds",
         type=int,
         default=int(
@@ -434,6 +460,7 @@ def load_config(argv: list[str] | None = None) -> AppConfig:
             only_cancelable=args.only_cancelable,
             apply_site_filters=args.apply_site_filters,
             fuel_policies=args.fuel_policies,
+            companies=args.companies,
         ),
         browser=BrowserSettings(
             headless=args.headless,

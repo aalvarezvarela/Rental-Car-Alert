@@ -93,6 +93,7 @@ poetry run python -m rental_car_alert 115
 - `RCA_HEADLESS`: `true` or `false`
 - `RCA_INSURANCE_LIMIT`: Compare against insurance-inclusive price
 - `RCA_ONLY_CANCELABLE`: Restrict to cancelable offers
+- `RCA_COMPANIES`: Optional comma-separated company filter, for example `Centauro`
 - `RCA_SNAPSHOT_FILE`: Optional file for suppressing duplicate emails across runs
 - `RCA_BROWSER_LOCALE`: Browser locale, defaults to `es-ES`
 - `RCA_TIMEZONE_ID`: Browser timezone, defaults to `Europe/Madrid`
@@ -110,6 +111,8 @@ It is preconfigured for:
 - pickup date: `2026-06-23`
 - return date: `2026-07-07`
 - pickup/return time: `18 00`
+- general alert limit: `125`
+- Centauro-only alert limit: `215`
 
 To make it work, add these repository secrets:
 

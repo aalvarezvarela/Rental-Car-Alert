@@ -70,6 +70,7 @@ class RentalCarMonitor:
                 limit=self._config.search.limit,
                 insurance_limit=self._config.search.insurance_limit,
                 allowed_fuel_policies=self._config.search.fuel_policies,
+                allowed_companies=self._config.search.companies,
             )
         ]
 
@@ -105,6 +106,11 @@ class RentalCarMonitor:
 
     def _build_email_subject(self, alert_count: int) -> str:
         offer_label = "offer" if alert_count == 1 else "offers"
+        company_label = (
+            f"{', '.join(sorted(self._config.search.companies)).title()} "
+            if self._config.search.companies
+            else ""
+        )
         price_mode = (
             "with insurance"
             if self._config.search.insurance_limit
@@ -112,7 +118,7 @@ class RentalCarMonitor:
         )
         return (
             f"{self._config.search.pickup_location}: "
-            f"{alert_count} {offer_label} under "
+            f"{alert_count} {company_label}{offer_label} under "
             f"{self._config.search.limit:.2f} EUR "
             f"({price_mode}, "
             f"{self._config.search.pickup_date.isoformat()} to "
@@ -130,6 +136,8 @@ class RentalCarMonitor:
                 reasons.append("price is not below limit")
             if not offer.is_fuel_policy_allowed(self._config.search.fuel_policies):
                 reasons.append(f"fuel policy {offer.fuel_policy!r} is not allowed")
+            if not offer.is_company_allowed(self._config.search.companies):
+                reasons.append(f"company {offer.company!r} is not allowed")
             LOGGER.info(
                 "Rejected offer #%s %s: %s (%s).",
                 offer.position + 1,
