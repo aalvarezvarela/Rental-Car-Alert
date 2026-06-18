@@ -368,6 +368,12 @@ class DoyouSpainScraper:
     ) -> None:
         self._wait_for_results(page, timeout_error)
 
+        self._apply_company_filters(
+            page=page,
+            search_settings=search_settings,
+            timeout_error=timeout_error,
+        )
+
         if search_settings.apply_site_filters:
             self._click_available_result_filter(
                 page=page,
@@ -397,6 +403,99 @@ class DoyouSpainScraper:
             )
 
         self._wait_for_results(page, timeout_error)
+
+    def _apply_company_filters(
+        self,
+        page,
+        search_settings: SearchSettings,
+        timeout_error: type[Exception],
+    ) -> bool:
+        if not search_settings.companies:
+            return True
+
+        company_filters = self._find_company_filter_inputs(
+            page=page,
+            allowed_companies=search_settings.companies,
+        )
+        if not company_filters:
+            LOGGER.info(
+                "Skipping company result filter; no provider checkbox matched %s.",
+                ", ".join(sorted(search_settings.companies)),
+            )
+            return False
+
+        try:
+            page.locator("#filterPrv").evaluate("(element) => { element.open = true; }")
+        except Exception:
+            LOGGER.debug("Unable to force provider filter section open.", exc_info=True)
+
+        selected_titles: list[str] = []
+        filter_timeout_ms = min(2_000, self._browser_settings.timeout_ms)
+        for company_filter in company_filters:
+            input_id = company_filter["input_id"]
+            title = company_filter["title"]
+            locator = page.locator(f"#{input_id}").first
+            try:
+                locator.wait_for(state="attached", timeout=filter_timeout_ms)
+                if not locator.is_checked():
+                    self._human_pause(page)
+                    locator.click(force=True, timeout=filter_timeout_ms)
+                selected_titles.append(title)
+                LOGGER.info("Selected company result filter: %s.", title)
+                page.wait_for_timeout(2_000)
+                self._wait_for_results(page, timeout_error)
+            except timeout_error:
+                LOGGER.debug(
+                    "Skipping company filter candidate; checkbox not available: #%s",
+                    input_id,
+                )
+
+        if not selected_titles:
+            LOGGER.info(
+                "Skipping company result filter; provider checkboxes matched but "
+                "none could be selected."
+            )
+            return False
+
+        return True
+
+    def _find_company_filter_inputs(
+        self,
+        page,
+        allowed_companies: frozenset[str],
+    ) -> list[dict[str, str]]:
+        return page.evaluate(
+            """
+            (allowedCompanies) => {
+                const normalize = (value) => (
+                    (value || '').toLowerCase().replace(/\\s+/g, ' ').trim()
+                );
+                const allowed = allowedCompanies.map(normalize).filter(Boolean);
+                const matchesCompany = (rawTitle) => {
+                    const title = normalize(rawTitle);
+                    return allowed.some((allowedCompany) => (
+                        title === allowedCompany ||
+                        title.includes(allowedCompany) ||
+                        allowedCompany.includes(title)
+                    ));
+                };
+
+                return Array.from(document.querySelectorAll('#filterPrv li'))
+                    .map((item) => {
+                        const input = item.querySelector('input[name="frmPrv"]');
+                        const image = item.querySelector('img[title]');
+                        const title = image?.getAttribute('title') || item.textContent || '';
+                        return {
+                            input_id: input?.id || '',
+                            provider_code: input?.value || '',
+                            title: title.replace(/\\s+/g, ' ').trim(),
+                        };
+                    })
+                    .filter((item) => item.input_id && matchesCompany(item.title));
+            }
+            """,
+            sorted(allowed_companies),
+        )
 
     def _click_available_result_filter(
         self,
