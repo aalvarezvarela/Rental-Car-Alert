@@ -1,18 +1,18 @@
-name: Heraklion Rental Car Alert
+name: Heraklion Centauro Rental Car Alert
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "36 7-23 * * *"
-    - cron: "36 0,2,4,6 * * *"
+    - cron: "24 7-23 * * *"
+    - cron: "24 0,2,4,6 * * *"
 
 concurrency:
-  group: heraklion-rental-car-alert
+  group: heraklion-centauro-rental-car-alert
   cancel-in-progress: false
 
 jobs:
-  heraklion_monitor:
-    name: Heraklion Monitor
+  heraklion_centauro_monitor:
+    name: Heraklion Centauro Monitor
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -21,13 +21,14 @@ jobs:
       RCA_PICKUP_DATE: "2026-06-23"
       RCA_RETURN_DATE: "2026-07-07"
       RCA_PICKUP_TIME: "18 00"
-      RCA_PRICE_LIMIT: "125"
+      RCA_PRICE_LIMIT: "300"
+      RCA_COMPANIES: "Centauro"
       RCA_HEADLESS: "true"
       RCA_INSURANCE_LIMIT: "true"
       RCA_ONLY_CANCELABLE: "false"
       RCA_FUEL_POLICIES: "full/full,igual/igual,like for like, Igual - Igual"
       RCA_RUN_ONCE: "true"
-      RCA_SNAPSHOT_FILE: ".cache/heraklion_alert_snapshot.json"
+      RCA_SNAPSHOT_FILE: ".cache/heraklion_centauro_alert_snapshot.json"
       RCA_EMAIL_TO: ${{ secrets.RCA_EMAIL_TO }}
       RCA_EMAIL_FROM: ${{ secrets.RCA_EMAIL_FROM }}
       RCA_SMTP_HOST: ${{ secrets.RCA_SMTP_HOST }}
@@ -41,10 +42,10 @@ jobs:
       - name: Restore alert snapshot
         uses: actions/cache/restore@v4
         with:
-          path: .cache/heraklion_alert_snapshot.json
-          key: heraklion-alert-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .cache/heraklion_centauro_alert_snapshot.json
+          key: heraklion-centauro-alert-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            heraklion-alert-snapshot-
+            heraklion-centauro-alert-snapshot-
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
@@ -72,13 +73,13 @@ jobs:
         if: always()
         uses: actions/cache/save@v4
         with:
-          path: .cache/heraklion_alert_snapshot.json
-          key: heraklion-alert-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
+          path: .cache/heraklion_centauro_alert_snapshot.json
+          key: heraklion-centauro-alert-snapshot-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Upload diagnostics artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: rental-car-alert-diagnostics
+          name: rental-car-alert-centauro-diagnostics
           path: debug_artifacts/
           if-no-files-found: ignore
