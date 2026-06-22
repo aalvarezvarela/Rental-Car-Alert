@@ -2,9 +2,9 @@ name: Heraklion Rental Car Alert
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "36 7-23 * * *"
-    - cron: "36 0,2,4,6 * * *"
+  # schedule:
+  #   - cron: "36 7-23 * * *"
+  #   - cron: "36 0,2,4,6 * * *"
 
 concurrency:
   group: heraklion-rental-car-alert
