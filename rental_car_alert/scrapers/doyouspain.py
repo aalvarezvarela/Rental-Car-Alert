@@ -13,8 +13,12 @@ from rental_car_alert.parsers.doyouspain import get_insurance_price, parse_offer
 
 LOGGER = logging.getLogger(__name__)
 HOME_URL = "https://www.doyouspain.com/alquiler-coches/"
+FALLBACK_HOME_URL = "https://www.doyouspain.com/index.htm"
 DEBUG_DIR = Path("debug_artifacts")
 LOG_PREVIEW_LIMIT = 4_000
+HOME_FORM_ATTEMPTS = 3
+HOME_FORM_TIMEOUT_MS = 5_000
+OPTIONAL_ELEMENT_TIMEOUT_MS = 2_000
 MIN_HUMAN_PAUSE_SECONDS = 0.6
 MAX_HUMAN_PAUSE_SECONDS = 2.0
 ESTIMATED_INSURANCE_PRICE_PER_DAY = 5.0
@@ -107,9 +111,56 @@ class DoyouSpainScraper:
         return proxy_settings
 
     def _open_homepage(self, page) -> None:
-        LOGGER.info("Opening DoYouSpain homepage.")
-        page.goto(HOME_URL, wait_until="domcontentloaded")
-        page.wait_for_timeout(1_000)
+        home_urls = (HOME_URL, FALLBACK_HOME_URL)
+        last_error: Exception | None = None
+
+        for attempt in range(1, HOME_FORM_ATTEMPTS + 1):
+            home_url = home_urls[(attempt - 1) % len(home_urls)]
+            LOGGER.info(
+                "Opening DoYouSpain homepage (attempt %s/%s): %s",
+                attempt,
+                HOME_FORM_ATTEMPTS,
+                home_url,
+            )
+            try:
+                response = page.goto(home_url, wait_until="domcontentloaded")
+                page.wait_for_timeout(1_000)
+                page.locator("#pickup").first.wait_for(
+                    state="visible",
+                    timeout=min(
+                        HOME_FORM_TIMEOUT_MS,
+                        self._browser_settings.timeout_ms,
+                    ),
+                )
+                if response is not None:
+                    LOGGER.info(
+                        "DoYouSpain homepage responded with HTTP %s.",
+                        response.status,
+                    )
+                return
+            except Exception as exc:
+                last_error = exc
+                LOGGER.warning(
+                    "DoYouSpain search form was unavailable on homepage attempt %s.",
+                    attempt,
+                )
+                self._dump_page_diagnostics(
+                    page,
+                    f"missing_search_form_attempt_{attempt}",
+                )
+                if attempt < HOME_FORM_ATTEMPTS:
+                    try:
+                        page.context.clear_cookies()
+                    except Exception:
+                        LOGGER.debug(
+                            "Unable to clear browser cookies before homepage retry.",
+                            exc_info=True,
+                        )
+
+        raise RuntimeError(
+            "DoYouSpain did not expose its pickup search form after "
+            f"{HOME_FORM_ATTEMPTS} homepage attempts. Last URL: {page.url}"
+        ) from last_error
 
     def _perform_search(
         self,
@@ -565,7 +616,13 @@ class DoyouSpainScraper:
     ) -> bool:
         locator = page.locator(selector).first
         try:
-            locator.wait_for(state="visible")
+            locator.wait_for(
+                state="visible",
+                timeout=min(
+                    OPTIONAL_ELEMENT_TIMEOUT_MS,
+                    self._browser_settings.timeout_ms,
+                ),
+            )
             self._human_pause(page)
             locator.click()
             LOGGER.info("Clicked %s.", description)
@@ -612,13 +669,23 @@ class DoyouSpainScraper:
         except Exception:
             body_preview = ""
 
-        LOGGER.warning("Empty results diagnostics URL: %s", page.url)
-        LOGGER.warning("Empty results diagnostics title: %s", page.title())
+        try:
+            page_url = page.url
+        except Exception:
+            page_url = ""
+        try:
+            page_title = page.title()
+        except Exception:
+            page_title = ""
+
+        LOGGER.warning("Page diagnostics reason: %s", reason)
+        LOGGER.warning("Page diagnostics URL: %s", page_url)
+        LOGGER.warning("Page diagnostics title: %s", page_title)
         if body_preview:
-            LOGGER.warning("Empty results diagnostics body preview: %s", body_preview)
+            LOGGER.warning("Page diagnostics body preview: %s", body_preview)
         if html_content:
             LOGGER.warning(
-                "Empty results diagnostics HTML preview (%s chars): %s",
+                "Page diagnostics HTML preview (%s chars): %s",
                 min(len(html_content), LOG_PREVIEW_LIMIT),
                 html_content[:LOG_PREVIEW_LIMIT],
             )
