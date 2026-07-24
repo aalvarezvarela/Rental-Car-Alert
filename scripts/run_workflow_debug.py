@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 
@@ -14,7 +15,7 @@ MAPPING_PATTERN = re.compile(r"^(?P<key>[A-Za-z_][A-Za-z0-9_-]*):(?:\s*(?P<value
 SENSITIVE_KEY_PARTS = ("PASSWORD", "TOKEN", "SECRET")
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Run rental_car_alert locally using the env block from a GitHub "
@@ -35,10 +36,16 @@ def main() -> int:
         action="store_true",
         help="List job ids found in the workflow and exit.",
     )
-    parser.add_argument(
+    browser_mode = parser.add_mutually_exclusive_group()
+    browser_mode.add_argument(
         "--headful",
         action="store_true",
         help="Override RCA_HEADLESS=false so the browser is visible locally.",
+    )
+    browser_mode.add_argument(
+        "--headless",
+        action="store_true",
+        help="Override RCA_HEADLESS=true so the browser runs without a window.",
     )
     parser.add_argument(
         "--no-email",
@@ -60,7 +67,7 @@ def main() -> int:
         action="store_true",
         help="Resolve and print configuration without starting the monitor.",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
 
     workflow = args.workflow.resolve()
     jobs = list_jobs(workflow)
@@ -90,6 +97,8 @@ def main() -> int:
 
     if args.headful:
         env["RCA_HEADLESS"] = "false"
+    elif args.headless:
+        env["RCA_HEADLESS"] = "true"
     if args.no_email:
         env["RCA_SMTP_PASSWORD"] = ""
 

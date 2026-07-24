@@ -48,13 +48,31 @@ With the included `.env`, you can also just run:
 poetry run python -m rental_car_alert 115 --once
 ```
 
-Run locally using a workflow job's parameters:
+Debug the Almería Airport job locally in a visible Chromium window:
 
 ```bash
-poetry run python scripts/run_workflow_debug.py .github/workflows/flores_airport_alert.yml --headful --no-email --show-env
+poetry run python scripts/debug_almeria.py
 ```
 
-The debug runner resolves `${{ secrets.NAME }}` from your shell environment or `.env`.
+This reuses the `almeria_monitor` search configuration from
+`.github/workflows/almeria_airport.yml`, forces headed mode, and disables email
+delivery. Add `--show-env` to inspect the resolved configuration or `--dry-run`
+to validate it without opening Chromium.
+
+Run the same Almería configuration without a visible browser window:
+
+```bash
+poetry run python scripts/debug_almeria.py --headless
+```
+
+For another workflow, use the generic runner:
+
+```bash
+poetry run python scripts/run_workflow_debug.py .github/workflows/heraklion_alert.yml --headful --no-email
+```
+
+The debug runners resolve `${{ secrets.NAME }}` from your shell environment or
+`.env`.
 
 Run continuously:
 
