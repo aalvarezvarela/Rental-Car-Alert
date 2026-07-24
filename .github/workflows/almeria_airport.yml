@@ -22,7 +22,7 @@ jobs:
       RCA_RETURN_DATE: "2026-10-14"
       RCA_PICKUP_TIME: "15 00"
       RCA_PRICE_LIMIT: "131"
-      RCA_HEADLESS: "true"
+      RCA_HEADLESS: "false"
       RCA_INSURANCE_LIMIT: "true"
       RCA_ONLY_CANCELABLE: "false"
       RCA_APPLY_SITE_FILTERS: "true"
@@ -63,7 +63,7 @@ jobs:
         run: poetry run playwright install --with-deps chromium
 
       - name: Run rental car monitor
-        run: poetry run python -m rental_car_alert
+        run: xvfb-run --auto-servernum poetry run python -m rental_car_alert
 
       - name: Ensure alert snapshot path exists
         if: always()
