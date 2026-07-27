@@ -17,6 +17,18 @@ INSURANCE_LABELS = (
     "Rental + Insurance",
     "Rent + Insurance",
 )
+DETAIL_TOTAL_PRICE_SELECTORS = (
+    "#precioTotalValue",
+    "#precioTotalValueBF",
+)
+DETAIL_ONLINE_PRICE_SELECTORS = (
+    "#onlinePrecioValue",
+    "#onlinePrecioValueBF",
+)
+DETAIL_DESTINATION_PRICE_SELECTORS = (
+    "#precioDestinoValue",
+    "#precioDestinoValueBF",
+)
 
 
 def normalize_text(raw_value: str) -> str:
@@ -108,12 +120,40 @@ def _extract_insurance_cell_values(cells: Iterable[Tag]) -> float | None:
     return None
 
 
+def _extract_detail_price(
+    newsoup: BeautifulSoup,
+    selectors: tuple[str, ...],
+) -> float | None:
+    for selector in selectors:
+        element = newsoup.select_one(selector)
+        if element is not None:
+            return parse_currency(element.get_text(" ", strip=True))
+    return None
+
+
+def _get_non_online_charges(newsoup: BeautifulSoup) -> float:
+    total_price = _extract_detail_price(newsoup, DETAIL_TOTAL_PRICE_SELECTORS)
+    online_price = _extract_detail_price(newsoup, DETAIL_ONLINE_PRICE_SELECTORS)
+    if (
+        total_price is not None
+        and online_price is not None
+        and total_price >= online_price
+    ):
+        return total_price - online_price
+
+    destination_price = _extract_detail_price(
+        newsoup,
+        DETAIL_DESTINATION_PRICE_SELECTORS,
+    )
+    return destination_price or 0.0
+
+
 def get_insurance_price(newsoup: BeautifulSoup, original_price: float) -> float | str:
     insurance_value = _extract_insurance_cell_values(
         newsoup.select('td[data-for="insurance"]')
     )
     if insurance_value is not None:
-        return insurance_value
+        return insurance_value + _get_non_online_charges(newsoup)
 
     raw_html = str(newsoup)
     c_aux_match = re.search(r"var cAux = ([0-9.]+);", raw_html)
@@ -121,9 +161,11 @@ def get_insurance_price(newsoup: BeautifulSoup, original_price: float) -> float 
 
     insurance_c = float(c_aux_match.group(1)) if c_aux_match else 0.0
     insurance_i = float(i_aux_match.group(1)) if i_aux_match else 0.0
+    total_price = _extract_detail_price(newsoup, DETAIL_TOTAL_PRICE_SELECTORS)
+    price_before_insurance = total_price or original_price
 
     if insurance_c > 0:
-        return original_price + insurance_c
+        return price_before_insurance + insurance_c
     if insurance_i > 0:
-        return original_price + insurance_i
+        return price_before_insurance + insurance_i
     return "Could not find it"
