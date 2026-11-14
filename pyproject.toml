@@ -13,7 +13,7 @@ packages = [{ include = "rental_car_alert" }]
 python = ">=3.12,<3.13"
 beautifulsoup4 = ">=4.12,<5"
 soupsieve = ">=4.0,<5"
-lxml = ">=5,<6"
+lxml = ">=6.1.0,<7"
 playwright = ">=1.52,<2"
 
 [tool.poetry.scripts]
